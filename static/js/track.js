@@ -27,6 +27,12 @@ export function rng(seed) {
   };
 }
 
+// Flat outline of the built-in street circuit for map previews: much cheaper than building a whole Track.
+export function circuitOutline(n = 160) {
+  const curve = new THREE.CatmullRomCurve3(CONTROL.map(([x, z]) => new THREE.Vector3(x, 0, z)), true, 'centripetal');
+  return curve.getSpacedPoints(n).map((p) => [p.x, p.z, 0]);
+}
+
 export class Track {
   // map: { points:[[x,z],...] } for an open real-world road; omitted for the closed Tokyo circuit.
   constructor(map = null) {

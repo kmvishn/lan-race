@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { Track, buildWorld, gridSlot, setRoadWidth } from './track.js';
+import { Track, buildWorld, gridSlot, setRoadWidth, circuitOutline } from './track.js';
 import { CarPhysics, collide, clamp, wrapAngle } from './physics.js';
 import { initTextureDecoder, loadCarModels, ensureCar, carLoaded, CarVisual, CARS, CAR_IDS, POLICE_CAR, VEHICLE_CREDITS, vehicleOpts, vehicleMass } from './cars.js';
 import { Traffic, loadTrafficModels, loadNearModel } from './traffic.js';
@@ -242,8 +242,8 @@ const POI_COL = { gopuram: '#ffb400', church: '#9fd8ff', mosque: '#7dffb0', stat
 function routeOf(m) {
   if (m.route) return m.route;
   if (!m.closed) return null;
-  const t = m.id === G.mapId ? track : (routeOf.tokyo ||= new Track(null));
-  const out = [];
+  if (m.id !== G.mapId) return (routeOf.circuit ||= circuitOutline());
+  const t = track, out = [];
   for (let i = 0; i < t.n; i += Math.max(1, Math.floor(t.n / 160))) out.push([t.px[i], t.pz[i], t.py[i]]);
   out.push(out[0]);
   return out;
