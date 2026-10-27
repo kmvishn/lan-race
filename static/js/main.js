@@ -160,7 +160,23 @@ function setCar(id) {
   $('stAccel').style.width = c.stats.accel * 100 + '%';
   $('stHandling').style.width = c.stats.handling * 100 + '%';
   if (!carLoaded(id)) { $('carSpec').textContent += ' · loading…'; ensureCar(id).then(() => { if (car === id) setCar(id); }); return; }
-  if (myVis && myVis.carId !== car) { myVis.dispose(); myVis = new CarVisual(car, color, { name }); scene.add(myVis.root); }
+  if (myVis && myVis.carId !== car) swapCar();
+  prefetchCars();
+}
+// Builds the new car and compiles its shaders off the main thread before showing it, so the swap doesn't hitch.
+let swapTok = 0;
+async function swapCar() {
+  const tok = ++swapTok, vis = new CarVisual(car, color, { name });
+  vis.root.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) renderer.initTexture(m[k]); });
+  await renderer.compileAsync(vis.root, camera, scene);
+  if (tok !== swapTok || !myVis) { vis.dispose(); return; }
+  myVis.dispose(); myVis = vis; scene.add(vis.root);
+  refreshPaint();
+}
+// Downloads the cars either side of the selection while idle, so cycling through the roster is instant.
+function prefetchCars() {
+  const i = CAR_IDS.indexOf(car), idle = window.requestIdleCallback || ((f) => setTimeout(f, 200));
+  idle(() => { for (const d of [1, -1]) ensureCar(CAR_IDS[(i + d + CAR_IDS.length) % CAR_IDS.length]).catch(() => {}); });
 }
 const cycleCar = (d) => { setCar(CAR_IDS[(CAR_IDS.indexOf(car) + d + CAR_IDS.length) % CAR_IDS.length]); save(); sendHello(); };
 $('carPrev').onclick = () => cycleCar(-1);
@@ -180,7 +196,7 @@ $('musicBtn').onclick = () => {
 let lastLyric = '';
 function renderLyrics() {
   $('musicBtn').innerHTML = musicOn ? '&#9835; MUSIC ON' : '&#9835; MUSIC OFF';
-  if (!audio.ctx) return;
+  if (!audio.running) return;
   const l = music.lyrics();
   let html = '', next = '';
   if (!musicOn || !l) html = '<span class="muted">Music off</span>';
@@ -351,7 +367,7 @@ function disposeCity() {
   });
   city = null;
 }
-async function loadMap(id) {
+async function loadMap(id, progress) {
   if (G.mapId === id) return;
   if (!THEMES[id]) id = 'tokyo';
   const data = id === 'tokyo' ? null : (mapCache[id] ||= await (await fetch(`maps/${id}.json`)).json());
@@ -366,10 +382,13 @@ async function loadMap(id) {
   T.reserved = plans.concat(poiPlans);
   city = new THREE.Group();
   scene.add(city);
+  await progress?.(0.15, 'Laying ' + (data ? data.name : 'the circuit') + '…');
   world = buildWorld(city, track, renderer, T);
+  await progress?.(0.45, 'Raising the city…');
   props = T.tokyo ? buildTokyo(city, track, world) : buildIndia(city, track, world, T, plans);
   props.setWet(rain.visible);
   buildPois(city, track, T, poiPlans, world.groundY);
+  await progress?.(0.75, 'Spawning traffic…');
   traffic = new Traffic(city, track, trafficModels, T, id, world.groundY);
   traffic.drawDist = Q.traffic;
   chunkStatic(city, new Set(traffic.meshes)); // route-long static meshes -> 400 m tiles the camera can cull
@@ -390,36 +409,50 @@ async function loadMap(id) {
   oldEnv?.dispose();
   me = new CarPhysics(track);
   G.mapId = id; G.theme = T; G.mapInfo = data || TOKYO_INFO;
-  // upload every texture now so the first sight of a vehicle or building type mid-race doesn't hitch
-  scene.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) renderer.initTexture(m[k]); });
-  // ...and compile every shader now, including traffic types not yet on screen and the police car (kept hidden so its
-  // programs stay cached), so nothing compiles mid-race.
+  await progress?.(1);
+  // Warm the GPU for everything, including traffic types not yet on screen and the police car (kept hidden so its
+  // programs stay cached), so nothing compiles or uploads mid-race.
   if (!policeWarm) { policeWarm = new CarVisual(POLICE_CAR, 0x08090c, { police: true, beam: false }); scene.add(policeWarm.root); }
-  const hidden = traffic.meshes.filter((m) => !m.visible);
-  for (const m of hidden) m.visible = true;
-  policeWarm.root.visible = true;
-  renderer.compile(scene, camera);
-  for (const m of hidden) m.visible = false;
-  policeWarm.root.visible = false;
-  loadNearTraffic(traffic);
+  const near = loadNearTraffic(traffic);
   renderLobby();
+  if (progress) {
+    await warmUp([...traffic.meshes, policeWarm.root]);
+    // close-up traffic models: worth waiting for briefly at boot, otherwise they finish in the background
+    await Promise.race([near, new Promise((r) => setTimeout(r, 4000))]);
+  } else warmUp([...traffic.meshes, policeWarm.root]);
 }
 
-// Close-up detail: in the background, traffic types that also exist as player vehicles get that full-detail model
-// (more triangles, 1024 px compressed textures) for vehicles within ~45 m. Shaders compile as each arrives, so
+// Uploads every texture and geometry and compiles every shader in the scene (plus the given hidden objects) up front.
+// Shaders compile in parallel off the main thread where the browser supports it; then one render into a tiny target
+// with culling off uploads all geometry, so nothing first appears (and stalls) mid-race.
+const warmRT = new THREE.WebGLRenderTarget(4, 4);
+async function warmUp(extra = []) {
+  const show = (on, list) => { for (const o of list) o.visible = on; };
+  const hidden = extra.filter((o) => !o.visible);
+  scene.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) renderer.initTexture(m[k]); });
+  show(true, hidden);
+  const ready = renderer.compileAsync(scene, camera);
+  show(false, hidden);
+  await ready;
+  const culled = [];
+  scene.traverse((o) => { if (o.frustumCulled) { o.frustumCulled = false; culled.push(o); } });
+  show(true, hidden);
+  renderer.setRenderTarget(warmRT);
+  renderer.render(scene, camera);
+  renderer.setRenderTarget(null);
+  show(false, hidden);
+  for (const o of culled) o.frustumCulled = true;
+}
+
+// Close-up detail: traffic types that also exist as player vehicles get that full-detail model (more triangles,
+// 1024 px compressed textures) for vehicles within ~45 m. All load in parallel and are warmed up in one go, so
 // nothing compiles on first sight.
 async function loadNearTraffic(tr) {
-  for (const ty of tr.types) {
-    const id = ty.type.startsWith('real:') && ty.type.slice(5);
-    if (!id || !VEHICLE_CREDITS[id]) continue;
-    const m = await loadNearModel(id);
-    if (traffic !== tr) return; // map changed meanwhile
-    if (!m) continue;
-    const meshes = tr.attachNear(ty.type, m);
-    for (const im of meshes) im.visible = true;
-    renderer.compile(scene, camera);
-    for (const im of meshes) im.visible = false;
-  }
+  const ids = tr.types.map((ty) => ty.type.startsWith('real:') && ty.type.slice(5)).filter((id) => id && VEHICLE_CREDITS[id]);
+  const models = await Promise.all(ids.map((id) => loadNearModel(id)));
+  if (traffic !== tr) return; // map changed meanwhile
+  const meshes = ids.flatMap((id, i) => (models[i] ? tr.attachNear('real:' + id, models[i]) : []));
+  if (meshes.length) await warmUp(meshes);
 }
 
 // ---------- flow ----------
@@ -827,7 +860,7 @@ function frame() {
     const g = gridSlot(track, myLobbyIndex());
     me.x = g.x; me.z = g.z; me.y = g.y; me.pitch = 0; me.yaw = g.yaw; me.vx = me.vz = 0; me.fwd = 0; me.speed = 0;
     menuCamera(t);
-    if (audio.ctx && musicOn && !music.on) music.start();
+    if (audio.running && musicOn && !music.on) music.start();
     renderLyrics();
   }
   const wheelieT = me.bike && inp.wheelie && me.throttle > 0.3 && me.fwd > 2 && me.fwd < 85 ? 0.55 : 0;
@@ -891,13 +924,39 @@ addEventListener('resize', onResize);
 function ordinal(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] || ['th', 'st', 'nd', 'rd'][n % 100] || 'th'); }
 
 // ---------- boot ----------
+// Loading screen: weighted progress over the four stages, plus rotating tips.
+const LOAD_W = { cars: 0.4, traffic: 0.2, map: 0.3, gpu: 0.1 }, loadProg = { cars: 0, traffic: 0, map: 0, gpu: 0 };
+function loadStep(step, f, text) {
+  loadProg[step] = Math.max(loadProg[step], Math.min(1, f));
+  const p = Object.keys(LOAD_W).reduce((a, k) => a + LOAD_W[k] * loadProg[k], 0);
+  $('loadbar').style.width = (p * 100).toFixed(1) + '%';
+  $('loadpct').textContent = Math.floor(p * 100) + '%';
+  for (const li of $('ldSteps').children) {
+    const v = loadProg[li.dataset.s];
+    li.classList.toggle('done', v >= 1);
+    li.classList.toggle('active', v < 1 && (v > 0 || li.dataset.s === step));
+  }
+  if (text) $('loadtext').textContent = text;
+}
+const nextPaint = () => new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)));
+const TIPS = [
+  'Hold <b>Q</b> on a bike to pull a wheelie.', 'Tap <b>H</b> for the horn.', 'Press <b>Enter</b> to chat with the lobby.',
+  'Bus stops along the route are your checkpoints — watch the strip top-right.', 'Wayanad ghat: nine hairpins, and the climb is real.',
+  'Shift (or N) fires nitro. Save it for the straights.', 'Clip traffic hard enough and it counts as a takedown.',
+  'Every route follows real roads, mapped from OpenStreetMap.', 'GRAPHICS: AUTO settles the preset in the lobby, before the green light.',
+];
+let tipN = Math.floor(Math.random() * TIPS.length);
+const showTip = () => { $('ldTip').innerHTML = TIPS[tipN++ % TIPS.length]; };
+showTip();
+const tipTimer = setInterval(showTip, 3500);
 (async () => {
   try {
     await Promise.all([['NeonJP', 'jp'], ['NeonKN', 'kn'], ['NeonTA', 'ta'], ['NeonML', 'ml'], ['NeonTE', 'te']].map(async ([fam, f]) => {
       try { const font = new FontFace(fam, `url(fonts/neon-${f}.woff)`); await font.load(); document.fonts.add(font); } catch { /* system font fallback */ }
     }));
-    $('loadtext').textContent = 'Loading cars…';
-    const [, tm, idx] = await Promise.all([loadCarModels((p) => { $('loadbar').style.width = Math.round(p * 100) + '%'; }, [car]), loadTrafficModels(),
+    audio.init(); music.init(); // suspended until the first click; built now so that click doesn't stall a frame
+    loadStep('cars', 0, 'Loading cars…');
+    const [, tm, idx] = await Promise.all([loadCarModels((p) => loadStep('cars', p)), loadTrafficModels((p) => loadStep('traffic', p)),
       fetch('maps/index.json').then((r) => r.json())]);
     trafficModels = tm;
     // CC-BY attribution for downloaded vehicle models
@@ -906,16 +965,22 @@ function ordinal(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] 
     if (Object.keys(vc).length) document.querySelector('.credits').append(' · Vehicles (Sketchfab, CC): ' + Object.values(vc).map((c) => `${c.title} by ${c.author}`).join(', '));
     mapIndex = [...idx, TOKYO_INFO];
     rain.visible = true;
-    await loadMap('bengaluru');
+    // settle the preset first: light counts are part of every shader, so changing it later recompiles everything
+    applyQuality(gfxSetting === 'auto' ? 'high' : gfxSetting);
+    if (!CAR_IDS.includes(car)) car = CAR_IDS[0];
+    myVis = new CarVisual(car, color, { name });
+    scene.add(myVis.root);
+    await loadMap('bengaluru', (f, text) => { loadStep('map', f, text); if (f < 1) return nextPaint(); loadStep('gpu', 0, 'Warming up the GPU…'); return nextPaint(); });
+    loadStep('gpu', 0.6);
+    composer.render(); // post-processing passes too
+    loadStep('gpu', 1, 'Ready');
   } catch (e) {
-    $('loadtext').textContent = 'Failed to load car model: ' + e.message;
+    $('loadtext').textContent = 'Failed to load: ' + e.message;
     throw e;
   }
-  if (!CAR_IDS.includes(car)) car = CAR_IDS[0];
-  myVis = new CarVisual(car, color, { name });
   setCar(car);
-  scene.add(myVis.root);
   refreshPaint();
+  clearInterval(tipTimer);
   $('loading').classList.add('hidden');
   $('menu').classList.remove('hidden');
   G.phase = 'menu';
@@ -925,8 +990,6 @@ function ordinal(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] 
     bench.done = false;
     applyQuality(gfxSetting === 'auto' ? 'high' : gfxSetting);
   };
-  applyQuality(gfxSetting === 'auto' ? 'high' : gfxSetting);
-  renderer.compile(scene, camera);
   net = new Net(netHandlers);
   renderLobby();
   syncRemoteVisuals();

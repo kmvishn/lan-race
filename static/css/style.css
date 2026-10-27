@@ -10,10 +10,55 @@ canvas#view { position: fixed; inset: 0; width: 100%; height: 100%; display: blo
 .logo.small { font-size: 40px; margin-bottom: 16px; }
 .tagline { font: 700 14px/1 Arial, sans-serif; letter-spacing: 8px; color: var(--pink); margin: 10px 0 26px 6px; }
 
-#loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; background: radial-gradient(ellipse at center, #121a2a, #000 70%); z-index: 50; }
-#loading .bar { width: 360px; height: 4px; background: #1a2030; }
-#loading .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--cyan)); box-shadow: 0 0 12px var(--cyan); transition: width .2s; }
-#loadtext { color: #8a93a6; font-size: 13px; letter-spacing: 2px; }
+/* Loading screen: synthwave night drive (CSS-only animation) */
+#loading { position: fixed; inset: 0; z-index: 1100; overflow: hidden; background: linear-gradient(#05020f 0%, #120a2e 38%, #3a0f4a 56%, #7a1e5c 63%, #0a0612 63.2%); }
+.ld-sun { position: absolute; left: 50%; top: 63%; width: min(44vw, 420px); aspect-ratio: 1; transform: translate(-50%, -62%); border-radius: 50%;
+  background: linear-gradient(#ffd23f 10%, #ff7a2e 45%, #ff2e88 80%); box-shadow: 0 0 80px rgba(255, 46, 136, .55), 0 0 160px rgba(255, 122, 46, .35);
+  -webkit-mask: linear-gradient(#000 52%, transparent 52% 55%, #000 55% 63%, transparent 63% 67%, #000 67% 74%, transparent 74% 79%, #000 79% 85%, transparent 85% 91%, #000 91%);
+  mask: linear-gradient(#000 52%, transparent 52% 55%, #000 55% 63%, transparent 63% 67%, #000 67% 74%, transparent 74% 79%, #000 79% 85%, transparent 85% 91%, #000 91%); }
+.ld-city { position: absolute; left: 0; right: 0; bottom: 37%; width: 100%; height: 30vh; }
+.ld-city .b { fill: #07050f; }
+.ld-city .w rect.c { fill: #39e6ff; opacity: .55; animation: ld-flick 4s infinite steps(1); }
+.ld-city .w rect.a { fill: #ffb400; opacity: .5; }
+.ld-city .w rect:nth-child(7n) { animation-delay: -1.3s; } .ld-city .w rect:nth-child(5n) { animation-duration: 6.5s; }
+@keyframes ld-flick { 0%, 100% { opacity: .55; } 50% { opacity: .15; } }
+.ld-road { position: absolute; left: -50%; right: -50%; bottom: 0; height: 37%; perspective: 260px; perspective-origin: 50% 0; overflow: hidden; }
+.ld-grid { position: absolute; inset: 0 0 -60%; transform-origin: 50% 0; transform: rotateX(72deg);
+  background: repeating-linear-gradient(90deg, rgba(57, 230, 255, .55) 0 2px, transparent 2px 80px),
+    repeating-linear-gradient(rgba(255, 46, 136, .65) 0 3px, transparent 3px 70px), #0a0612;
+  background-size: 100% 100%, 100% 70px; animation: ld-drive .35s linear infinite; }
+.ld-grid::after { content: ''; position: absolute; top: 0; bottom: 0; left: calc(50% - 3px); width: 6px;
+  background: repeating-linear-gradient(#ffd23f 0 40px, transparent 40px 70px); box-shadow: 0 0 12px rgba(255, 210, 63, .5); animation: ld-dash .35s linear infinite; }
+@keyframes ld-drive { to { background-position: 0 0, 0 70px; } }
+@keyframes ld-dash { to { background-position: 0 70px; } }
+.ld-streaks i { position: absolute; top: 72%; left: 50%; width: 22vw; height: 2px; border-radius: 2px; opacity: 0;
+  background: linear-gradient(90deg, transparent, #39e6ff); transform-origin: 0 50%; animation: ld-streak 1.6s linear infinite; }
+.ld-streaks i:nth-child(odd) { background: linear-gradient(90deg, transparent, #ff2e88); }
+.ld-streaks i:nth-child(1) { --a: 8deg; animation-delay: 0s; } .ld-streaks i:nth-child(2) { --a: 172deg; animation-delay: -.3s; }
+.ld-streaks i:nth-child(3) { --a: 20deg; animation-delay: -.7s; } .ld-streaks i:nth-child(4) { --a: 160deg; animation-delay: -1s; }
+.ld-streaks i:nth-child(5) { --a: 32deg; animation-delay: -1.2s; } .ld-streaks i:nth-child(6) { --a: 148deg; animation-delay: -.5s; }
+@keyframes ld-streak { 0% { opacity: 0; transform: rotate(var(--a)) translateX(2vw) scaleX(.2); } 20% { opacity: .9; } 100% { opacity: 0; transform: rotate(var(--a)) translateX(60vw) scaleX(1.4); } }
+.ld-center { position: absolute; left: 50%; top: 9%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(520px, 90vw); }
+.ld-logo { font-size: clamp(44px, 8vw, 92px); text-align: center; white-space: nowrap; animation: ld-glow 2.4s ease-in-out infinite; }
+@keyframes ld-glow { 50% { text-shadow: 0 0 40px rgba(255, 46, 136, .7), 0 0 80px rgba(57, 230, 255, .35); } }
+.ld-sub { color: var(--pink); font: 800 12px Arial, sans-serif; letter-spacing: 6px; text-align: center; }
+#loading .bar { width: 100%; height: 6px; background: rgba(255, 255, 255, .08); border-radius: 3px; overflow: hidden; margin-top: 18px; }
+#loading .bar i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, var(--pink), var(--cyan)); box-shadow: 0 0 14px var(--cyan); transition: width .3s; }
+.ld-row { display: flex; justify-content: space-between; width: 100%; }
+#loadtext { color: #cfd6e4; font: 700 12px Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; }
+#loadpct { color: var(--cyan); font: 900 13px Arial, sans-serif; }
+#ldSteps { list-style: none; display: flex; gap: 8px; padding: 0; margin: 4px 0 0; }
+#ldSteps li { font: 800 10px Arial, sans-serif; letter-spacing: 2px; text-transform: uppercase; color: #5a6276; border: 1px solid #2a3044; padding: 5px 9px; border-radius: 12px; transition: all .3s; }
+#ldSteps li.active { color: #fff; border-color: var(--cyan); box-shadow: 0 0 10px rgba(57, 230, 255, .5); }
+#ldSteps li.done { color: #0a0e16; background: var(--cyan); border-color: var(--cyan); }
+#ldSteps li.done::before { content: '✓ '; }
+#ldTip { position: absolute; left: 50%; bottom: 6%; transform: translateX(-50%); max-width: 90vw; color: #e8ecf5; font: 600 14px Arial, sans-serif;
+  background: rgba(8, 6, 18, .82); border: 1px solid rgba(57, 230, 255, .35); border-radius: 22px; padding: 10px 18px; white-space: nowrap;
+  box-shadow: 0 0 24px rgba(0, 0, 0, .6); backdrop-filter: blur(4px); }
+#ldTip::before { content: 'TIP'; color: var(--pink); font: 900 11px Arial, sans-serif; letter-spacing: 3px; margin-right: 12px; }
+#ldTip b { color: var(--cyan); border: 1px solid rgba(57, 230, 255, .5); border-radius: 4px; padding: 1px 6px; font-size: 12px; }
+@media (max-width: 700px) { #ldTip { white-space: normal; text-align: center; } }
+@media (prefers-reduced-motion: reduce) { #loading *, #loading { animation: none !important; transition: none !important; } }
 
 #menu { position: fixed; inset: 0; display: flex; justify-content: space-between; padding: 48px 56px; gap: 40px; z-index: 20;
   background: linear-gradient(90deg, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.35) 38%, rgba(0,0,0,0) 55%, rgba(0,0,0,0.6) 80%); }

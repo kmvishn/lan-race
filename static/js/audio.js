@@ -6,8 +6,10 @@ const SAMPLES = {
 export class Audio {
   constructor() { this.ctx = null; this.muted = false; this.buf = {}; this.ready = false; }
 
-  start() {
-    if (this.ctx) { this.ctx.resume(); return; }
+  // Builds the audio graph and decodes samples at boot (the context starts suspended until a user gesture), so the
+  // first click only has to resume it instead of doing all this work in one frame.
+  init() {
+    if (this.ctx) return;
     const ctx = this.ctx = new AudioContext();
     this.master = ctx.createGain(); this.master.gain.value = 0.6;
     const comp = ctx.createDynamicsCompressor();
@@ -49,6 +51,13 @@ export class Audio {
 
     this.loadSamples();
   }
+
+  start() {
+    this.init();
+    if (this.ctx.state !== 'running') this.ctx.resume();
+  }
+
+  get running() { return this.ctx?.state === 'running'; }
 
   async loadSamples() {
     const ctx = this.ctx;

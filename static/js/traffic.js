@@ -198,14 +198,18 @@ export function loadNearModel(id) {
 }
 export const realIds = () => Object.keys(REAL);
 
-export async function loadTrafficModels() {
+export async function loadTrafficModels(onProgress) {
   const loader = gltfLoader();
   const out = {};
   const have = await fetch('models/traffic/credits.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  const real = Object.keys(REAL).filter((id) => have[id]);
+  let done = 0;
+  const tick = () => onProgress?.(++done / (KENNEY.length + real.length));
   await Promise.all([
-    ...KENNEY.map(async (t) => { out[t] = bake(await loader.loadAsync(`models/kenney/${t}.glb`)); }),
-    ...Object.keys(REAL).filter((id) => have[id]).map(async (id) => {
+    ...KENNEY.map(async (t) => { out[t] = bake(await loader.loadAsync(`models/kenney/${t}.glb`)); tick(); }),
+    ...real.map(async (id) => {
       try { out['real:' + id] = bakeReal(await loader.loadAsync(`models/traffic/${id}.glb`), REAL[id]); } catch (e) { console.warn('traffic model', id, e); }
+      tick();
     }),
   ]);
   return out;
