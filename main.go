@@ -224,6 +224,7 @@ type inMsg struct {
 	Time    float64         `json:"time"`
 	S       json.RawMessage `json:"s"`
 	K       json.RawMessage `json:"k"`
+	Text    string          `json:"text"`
 }
 
 var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
@@ -298,6 +299,15 @@ func (h *Hub) handle(c *Client, m *inMsg) {
 	switch m.T {
 	case "ping":
 		h.sendTo(c, map[string]any{"t": "pong", "c": m.C, "now": nowMs()})
+	case "chat":
+		txt := strings.TrimSpace(m.Text)
+		if txt == "" {
+			return
+		}
+		if len(txt) > 200 {
+			txt = txt[:200]
+		}
+		h.broadcast(map[string]any{"t": "chat", "from": c.id, "name": c.name, "color": c.color, "text": txt, "at": nowMs()})
 	case "hello":
 		if n := strings.TrimSpace(m.Name); n != "" {
 			if len(n) > 16 {

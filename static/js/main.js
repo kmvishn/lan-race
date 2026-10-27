@@ -310,6 +310,7 @@ const netHandlers = {
   result: (m) => showResults(m),
   knock: (m) => traffic?.applyRemoteKnock(m.k.gi, m.k),
   close: () => hud.net('reconnecting…'),
+  chat: (m) => appendChat(m),
 };
 function sendHello() { net.send({ t: 'hello', name, color, car }); }
 
@@ -932,3 +933,127 @@ function ordinal(n) { return n + (['th', 'st', 'nd', 'rd'][(n % 100 - 20) % 10] 
   onResize();
 })();
 frame();
+
+// ---------- chat ----------
+const chatEl = $('chat'), chatLog = $('chatLog'), chatForm = $('chatForm'), chatInput = $('chatInput');
+const chatPill = $('chatPill'), chatClose = $('chatClose'), chatBadge = $('chatBadge'), chatPeers = $('chatPeers');
+let chatUnread = 0;
+function openChat() {
+  chatEl.classList.add('open');
+  chatUnread = 0; chatBadge.classList.add('hidden'); chatBadge.textContent = '0';
+  setTimeout(() => { chatInput.focus(); chatLog.scrollTop = chatLog.scrollHeight; }, 20);
+}
+function closeChat() {
+  chatEl.classList.remove('open');
+  chatInput.blur();
+  if ($('emojiPanel')) toggleEmoji(false);
+}
+function appendChat(m) {
+  const line = document.createElement('div');
+  line.className = 'msg';
+  const mine = m.from === net?.id;
+  line.innerHTML = `<b style="color:${esc(m.color || '#8feaff')}">${esc(m.name || '?')}${mine ? ' (you)' : ''}:</b>${esc(m.text)}`;
+  chatLog.appendChild(line);
+  while (chatLog.children.length > 80) chatLog.removeChild(chatLog.firstChild);
+  chatLog.scrollTop = chatLog.scrollHeight;
+  if (!chatEl.classList.contains('open') && !mine) {
+    chatUnread = Math.min(99, chatUnread + 1);
+    chatBadge.textContent = chatUnread;
+    chatBadge.classList.remove('hidden');
+  }
+}
+function updateChatPeers() {
+  const n = G.lobby?.players?.length || 0;
+  chatPeers.textContent = n;
+}
+chatPill.addEventListener('click', openChat);
+chatClose.addEventListener('click', closeChat);
+addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  if (document.activeElement?.tagName === 'INPUT' || document.activeElement?.tagName === 'TEXTAREA') return;
+  e.preventDefault();
+  openChat();
+});
+chatInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') { chatInput.value = ''; closeChat(); }
+});
+chatForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const txt = chatInput.value.trim();
+  if (txt) net?.send({ t: 'chat', text: txt });
+  chatInput.value = '';
+  chatInput.focus();
+});
+setInterval(updateChatPeers, 1000);
+
+// Dock chat into menu-right while menu visible, float otherwise.
+const menuEl = $('menu'), chatDock = $('chatDock');
+const chatHomeParent = chatEl.parentNode;
+const chatHomeNext = chatEl.nextSibling;
+function syncChatDock() {
+  const menuOpen = menuEl && !menuEl.classList.contains('hidden');
+  if (menuOpen) {
+    if (chatEl.parentNode !== chatDock) {
+      chatDock.appendChild(chatEl);
+      chatEl.classList.add('docked');
+      chatEl.classList.add('open');
+      chatDock.style.display = 'block';
+    }
+  } else {
+    if (chatEl.parentNode === chatDock) {
+      chatHomeParent.insertBefore(chatEl, chatHomeNext);
+      chatEl.classList.remove('docked');
+      chatEl.classList.remove('open');
+      chatDock.style.display = 'none';
+    }
+  }
+}
+if (menuEl) new MutationObserver(syncChatDock).observe(menuEl, { attributes: true, attributeFilter: ['class'] });
+syncChatDock();
+
+// emoji picker
+const EMOJIS = {
+  smile: ['😀','😁','😂','🤣','😅','😊','😇','🙂','🙃','😉','😍','🥰','😘','😜','🤪','😎','🤩','🥳','🤗','🤔','🤨','😐','😑','😶','🙄','😏','😒','😔','😴','🤤','😪','😮','😲','🥺','😢','😭','😤','😠','😡','🤬','🤯','😳','🥵','🥶','😱','😨','😰','🤒','🤕','🤢','🤮','🤧','🥴','😵','🤠','🥸','🤓','🧐'],
+  love: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','🤎','💔','❣️','💕','💞','💓','💗','💖','💘','💝','💟','♥️','💌','😍','🥰','😘','💋','💑','💏','💐','🌹','🌷','🌺'],
+  hand: ['👍','👎','👌','🤌','🤏','✌️','🤞','🤟','🤘','🤙','👈','👉','👆','🖕','👇','☝️','👋','🤚','🖐️','✋','🖖','👏','🙌','🤝','🙏','✍️','💪','🦾','🦵','🦶','👂','👃','🧠','👀','👁️','👅','👄'],
+  car: ['🏎️','🏁','🚗','🚙','🚕','🚓','🚑','🚒','🚐','🚚','🚛','🚜','🏍️','🛵','🚲','🛴','🚨','🛞','⛽','🛣️','🛤️','🌉','🚦','🚧','🏆','🥇','🥈','🥉','🎖️','🏅','💨','🔥','⚡','💥','🌪️','☠️','💀','🤖'],
+  party: ['🎉','🎊','🥳','🎈','🎁','🎀','🪅','🪩','🎆','🎇','✨','🌟','⭐','🎵','🎶','🎸','🥁','🎹','🎺','🎷','🍾','🍻','🍺','🥂','🍹','🍸','🍷','🥤','🧃','🍕','🍔','🍟','🌮','🍿','🍩','🎂','🍰'],
+  object: ['⭐','🌟','✨','💫','⚡','🔥','💧','🌈','☀️','🌙','⛅','☁️','🌧️','⛈️','🌊','🪐','🌍','💎','💰','💸','🎯','🎮','🕹️','♟️','🎲','🧩','🎧','📱','💻','⌨️','🖱️','🔋','🔌','💡','🔦','🧨','🚀','🛸','👽','👾','🤖','🎃','😈','👻','💀','☠️','👹','👺']
+};
+const emojiBtn = $('chatEmoji'), emojiPanel = $('emojiPanel'), emojiGrid = $('emojiGrid');
+let emojiCat = 'smile';
+function renderEmojiGrid() {
+  emojiGrid.innerHTML = '';
+  for (const e of EMOJIS[emojiCat]) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = e;
+    b.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      const s = chatInput.value, p = chatInput.selectionStart ?? s.length;
+      chatInput.value = s.slice(0, p) + e + s.slice(chatInput.selectionEnd ?? p);
+      const np = p + e.length;
+      chatInput.focus();
+      chatInput.setSelectionRange(np, np);
+    });
+    emojiGrid.appendChild(b);
+  }
+}
+function toggleEmoji(force) {
+  const show = force !== undefined ? force : emojiPanel.classList.contains('hidden');
+  emojiPanel.classList.toggle('hidden', !show);
+  emojiBtn.classList.toggle('on', show);
+  if (show) renderEmojiGrid();
+}
+emojiBtn.addEventListener('click', (e) => { e.preventDefault(); toggleEmoji(); });
+for (const t of document.querySelectorAll('#emojiTabs .tab')) {
+  t.addEventListener('click', (e) => {
+    e.preventDefault();
+    emojiCat = t.dataset.cat;
+    for (const x of document.querySelectorAll('#emojiTabs .tab')) x.classList.toggle('on', x === t);
+    renderEmojiGrid();
+  });
+}
+document.addEventListener('click', (e) => {
+  if (!chatEl.contains(e.target) && !emojiPanel.classList.contains('hidden')) toggleEmoji(false);
+});
