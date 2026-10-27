@@ -20,7 +20,7 @@ export function buildTerrain(scene, track, terr, T) {
   };
   // Road samples on a coarse grid: terrain must stay under EVERY nearby stretch of road (hairpins stack legs within a
   // few metres of each other), rising at most CUT per metre away from the road edge — like a cutting in a hillside.
-  const RC = 24, CUT = 2, CLEAR = HW + 12, MAXD = CLEAR + 24, roadCells = new Map(), rk = (i, j) => i * 100003 + j;
+  const RC = 24, CUT = 2, CLEAR = HW + 18, MAXD = CLEAR + 24, roadCells = new Map(), rk = (i, j) => i * 100003 + j;
   for (let i = 0; i < track.n; i += 2) {
     const k = rk(Math.floor(track.px[i] / RC), Math.floor(track.pz[i] / RC));
     let a = roadCells.get(k); if (!a) roadCells.set(k, a = []); a.push(i);

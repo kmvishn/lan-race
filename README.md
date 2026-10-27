@@ -47,4 +47,5 @@ W/↑ throttle · S/↓ brake · A D/← → steer · Space handbrake · Shift/N
 - Traffic vehicles: Kenney Car Kit — CC0
 - Engine loops by domasx2, sirens by aquinn, impacts by rubberduck — CC0; tire squeal by qubodup — CC-BY 3.0 (OpenGameArt)
 - Noto Sans CJK / Kannada / Tamil / Malayalam / Telugu (subsets) — SIL Open Font License 1.1
+- Lobby song vocal: rendered offline with Piper TTS using the LJSpeech voice (public-domain dataset), pitched onto the melody with the WORLD vocoder (`scripts/make-vocals.py`)
 - three.js r160 — MIT

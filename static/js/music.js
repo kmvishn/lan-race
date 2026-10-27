@@ -89,6 +89,22 @@ export class Music {
     this.delay.connect(dlp); dlp.connect(fb); fb.connect(this.delay);
     const dOut = ctx.createGain(); dOut.gain.value = 0.3; dlp.connect(dOut); dOut.connect(this.bus);
     this.noise = this.a.noiseBuf;
+    // Sung vocal (rendered offline by scripts/make-vocals.py, aligned to step 0 of the song).
+    this.vocalBus = ctx.createGain(); this.vocalBus.gain.value = 0.95;
+    this.vocalBus.connect(this.bus); this.vocalBus.connect(this.verb);
+    this.vocalSrcs = [];
+    fetch('sfx/vocals.ogg').then((r) => (r.ok ? r.arrayBuffer() : Promise.reject(r.status))).then((b) => ctx.decodeAudioData(b)).then((buf) => {
+      this.vocal = buf;
+      const into = ctx.currentTime - this.t0; // arrived mid-song: join at the right spot
+      if (this.on && into >= 0 && into < buf.duration) this.playVocal(ctx.currentTime + 0.05, into + 0.05);
+    }).catch(() => { /* no vocal file: the talkbox carries the melody */ });
+  }
+
+  playVocal(t, offset = 0) {
+    const src = this.a.ctx.createBufferSource();
+    src.buffer = this.vocal; src.connect(this.vocalBus); src.start(t, offset);
+    src.onended = () => { this.vocalSrcs = this.vocalSrcs.filter((x) => x !== src); };
+    this.vocalSrcs.push(src);
   }
 
   start() {
@@ -109,12 +125,14 @@ export class Music {
     this.on = false;
     const ctx = this.a.ctx;
     this.bus.gain.setTargetAtTime(0, ctx.currentTime, 0.4);
+    for (const src of this.vocalSrcs) src.stop(ctx.currentTime + 2);
     setTimeout(() => { if (!this.on) clearInterval(this.timer); }, 2500);
   }
 
   schedule() {
     const ctx = this.a.ctx;
     while (this.next < ctx.currentTime + 0.12) {
+      if (this.step === 0 && this.vocal) this.playVocal(this.next);
       this.play(this.step, this.next);
       this.step = (this.step + 1) % this.tl.total;
       if (this.step === 0) this.t0 = this.next + S16;
@@ -217,7 +235,8 @@ export class Music {
     lfo.connect(lg); lg.connect(o.frequency); lg.connect(o2.frequency);
     const mix = ctx.createGain(); mix.gain.value = 1;
     o.connect(mix); const o2g = ctx.createGain(); o2g.gain.value = 0.4; o2.connect(o2g); o2g.connect(mix);
-    const out = ctx.createGain(); this.env(out, t, 0.03, 0.55, 0.2, 0.42, 0.06, t + len * 0.92);
+    const lvl = this.vocal ? 0.22 : 1; // with the sung vocal the talkbox just doubles it quietly
+    const out = ctx.createGain(); this.env(out, t, 0.03, 0.55 * lvl, 0.2, 0.42 * lvl, 0.06, t + len * 0.92);
     for (const [fq, q, gn] of [[f1, 9, 1], [f2, 11, 0.7], [2900, 6, 0.25]]) {
       const bp = ctx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = fq; bp.Q.value = q;
       const bg = ctx.createGain(); bg.gain.value = gn * 2.2;

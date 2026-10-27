@@ -8,7 +8,8 @@ Route data (c) OpenStreetMap contributors, ODbL.
 import html, json, math, os, re, sys, time, urllib.parse, urllib.request
 
 MAPS = [
-    dict(id='bengaluru', name='BENGALURU', sub='Outer Ring Road', a=(12.99711, 77.66885), b=(13.04769, 77.58095), start='TIN FACTORY', end='BRIGADE SENATE 2'),
+    dict(id='bengaluru', name='BENGALURU', sub='Outer Ring Road', a=(12.99711, 77.66885), b=(13.04769, 77.58095), start='TIN FACTORY', end='BRIGADE SENATE 2',
+         keep_loops=True, min_r=12, flyover=7.0),  # real approach: off the ORR, right under it, right onto the service road
     dict(id='chennai', name='CHENNAI', sub='Marina to Besant Nagar', a=(13.06879, 80.28447), b=(13.00071, 80.27122), start='NAPIER BRIDGE', end="ELLIOT'S BEACH"),
     dict(id='mysuru', name='MYSURU', sub='Palace to Chamundi Hills', a=(12.30522, 76.65538), b=(12.27250, 76.67040), start='MYSORE PALACE', end='CHAMUNDI HILLS'),
     dict(id='wayanad', name='WAYANAD', sub='Thamarassery Ghat', a=(11.48498, 76.01261), b=(11.52057, 76.02035), start='ADIVARAM', end='LAKKIDI',
@@ -149,13 +150,35 @@ def taubin(pts, min_r, rounds=800, lam=0.5, mu=-0.53):
     return pts
 
 
+def raise_flyovers(route, heights, lift, near=30, ramp=200):
+    """Where the route later comes back within `near` m of itself (e.g. doubling back on a service road under an
+    elevated ring road), lift the earlier stretch into a flyover with smooth ramps, so the two never cross at grade."""
+    cum = [0.0]
+    for i in range(1, len(route)): cum.append(cum[-1] + dist(route[i - 1], route[i]))
+    spans = []
+    for i in range(0, len(route), 3):
+        for j in range(i + 40, len(route), 3):
+            if cum[j] - cum[i] > 150 and dist(route[i], route[j]) < near:
+                if spans and cum[i] - spans[-1][1] < 60: spans[-1][1] = cum[i]
+                else: spans.append([cum[i], cum[i]])
+                break
+    out = list(heights)
+    for a, b in spans:
+        for i, d in enumerate(cum):
+            if a - ramp < d < b + ramp:
+                k = 1 if a <= d <= b else (d - (a - ramp)) / ramp if d < a else ((b + ramp) - d) / ramp
+                out[i] = heights[i] + lift * (k * k * (3 - 2 * k))
+        print(f'   flyover {a:.0f}-{b:.0f} m (+{lift} m)')
+    return out
+
+
 def build(m):
     coords = osrm(m['a'], m['b'])
     lat0 = sum(c[1] for c in coords) / len(coords); lon0 = sum(c[0] for c in coords) / len(coords)
     kx = 111320 * math.cos(math.radians(lat0)); kz = 110574
     pts = [((lon - lon0) * kx, -(lat - lat0) * kz) for lon, lat in coords]
     min_r = m.get('min_r', MIN_R)
-    if m.get('hairpins'):  # ghat: no loop removal, non-shrinking smoothing so hairpins keep their real size
+    if m.get('hairpins') or m.get('keep_loops'):  # keep the real path (hairpins, U-turns under flyovers): no loop removal
         pts = local_smooth(taubin(resample(pts, 4), 12), min_r)
     else:
         pts = resample(remove_loops(resample(pts, 4)), 8)
@@ -188,6 +211,7 @@ def build(m):
     for i in range(len(route)):
         f = i / 8; k = min(int(f), len(hs) - 2); t = f - k
         heights.append((hs[k] + (hs[k + 1] - hs[k]) * t - base) * m.get('vscale', 1))
+    if m.get('flyover'): heights = raise_flyovers(route, heights, m['flyover'])
 
     # Terrain: coarse SRTM grid in a corridor around the road.
     step = 150.0; reach = 1300.0

@@ -493,6 +493,25 @@ export function buildWorld(scene, track, renderer, T) {
   const rt = roadTextures(aniso, T.road);
   const roadMat = new THREE.MeshStandardMaterial({ map: rt.map, roughnessMap: rt.rough, roughness: india ? 0.75 : 0.62, metalness: 0.0, envMapIntensity: 1.6, color: 0xb8bcc8 });
   scene.add(new THREE.Mesh(ribbon(track, [[-HW, 0.02], [HW, 0.02]], 1, 36), roadMat));
+  // Flyovers: a concrete underside along the whole road (buried under the ground where the road is at grade) and
+  // pillars wherever the road runs more than 3 m above the ground.
+  const deckMat = new THREE.MeshStandardMaterial({ color: 0x6d6a66, roughness: 0.9, side: THREE.DoubleSide });
+  scene.add(new THREE.Mesh(ribbon(track, [[-(HW + WALL + 0.3), -0.8], [HW + WALL + 0.3, -0.8]], 1, 36), deckMat));
+  const piers = [];
+  for (let i = 0, next = 0; i < track.n; i++) {
+    if (track.cum[i] < next) continue;
+    const x = track.px[i], z = track.pz[i], top = track.py[i] - 0.8, g = groundY(x, z);
+    if (top - g < 3) continue;
+    next = track.cum[i] + 28;
+    piers.push(new THREE.Matrix4().compose(new THREE.Vector3(x, (top + g) / 2 - 0.5, z),
+      new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.atan2(track.tx[i], track.tz[i])), new THREE.Vector3(1, top - g + 1, 1)));
+  }
+  if (piers.length) {
+    const im = new THREE.InstancedMesh(new THREE.BoxGeometry(HW * 1.1, 1, 1.8), deckMat, piers.length);
+    piers.forEach((m, i) => im.setMatrixAt(i, m));
+    im.computeBoundingSphere();
+    scene.add(im);
+  }
 
   // Curbs on corners (circuit only)
   if (!india) {
