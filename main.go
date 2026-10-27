@@ -454,7 +454,7 @@ func main() {
 	http.HandleFunc("/ws", h.serveWS)
 
 	host, port, _ := net.SplitHostPort(*addr)
-	fmt.Println("NEON HARBOR — LAN racing server")
+	fmt.Println("LAN RACER 3D — LAN racing server")
 	fmt.Printf("  this machine:  http://localhost:%s\n", port)
 	if host != "" { // explicit address: listen exactly there
 		log.Fatal(http.ListenAndServe(*addr, nil))

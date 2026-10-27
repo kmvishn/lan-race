@@ -1,4 +1,4 @@
-# lan-racer
+# LAN Racer 3D
 
 A multiplayer browser racing game for local networks. A small Go server hosts the game; players join from any browser on the same network.
 
@@ -16,7 +16,7 @@ Open `http://localhost:8080` on the host machine; other players use one of the L
 
 Real roads built from OpenStreetMap routes (sprint from start to finish, two-way traffic), plus one street circuit:
 
-Bengaluru (Tin Factory → Brigade Senate 2) · Chennai · Mysuru · Wayanad ghat · Kannur → Thalassery · Ernakulam · Thiruvananthapuram · Hyderabad · Neon Harbor circuit
+Bengaluru (Tin Factory → Brigade Senate 2) · Chennai · Mysuru · Wayanad ghat · Kannur → Thalassery · Ernakulam · Thiruvananthapuram · Hyderabad · Neon Harbor (Tokyo) circuit
 
 - Real elevation from SRTM data: roads climb and dip, and the surrounding terrain follows the hills. The Wayanad ghat keeps all its real hairpins on a two-lane road; its climb (about 700 m in reality) is exaggerated 1.8x for drama.
 - Real landmarks along each route from OpenStreetMap/Wikidata, with roadside boards showing their photos from Wikimedia Commons.

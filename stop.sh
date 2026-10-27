@@ -3,9 +3,9 @@
 cd "$(dirname "$(readlink -f "$0")")"
 
 if [ -f .lan-racer.pid ] && kill "$(cat .lan-racer.pid)" 2>/dev/null; then
-  echo "Neon Harbor stopped."
+  echo "LAN Racer 3D stopped."
 else
   pids=$(pgrep -x lan-racer || true)
-  if [ -n "$pids" ]; then kill $pids && echo "Neon Harbor stopped."; else echo "Neon Harbor is not running."; fi
+  if [ -n "$pids" ]; then kill $pids && echo "LAN Racer 3D stopped."; else echo "LAN Racer 3D is not running."; fi
 fi
 rm -f .lan-racer.pid

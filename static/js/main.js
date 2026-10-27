@@ -356,7 +356,7 @@ async function loadMap(id) {
   const data = id === 'tokyo' ? null : (mapCache[id] ||= await (await fetch(`maps/${id}.json`)).json());
   const base = THEMES[id];
   const T = { ...base, banner: data ? data.start : base.banner, endLabel: data ? data.end : 'FINISH', terrain: data?.terrain, pois: data?.pois };
-  $('loadtext').textContent = 'Building ' + (data ? data.name : 'Neon Harbor') + '…';
+  $('loadtext').textContent = 'Building ' + (data ? data.name : 'Neon Harbor circuit') + '…';
   disposeCity();
   setRoadWidth(data?.roadHalfWidth || 9);
   track = new Track(data ? { ...data, overpasses: T.overpasses } : null);

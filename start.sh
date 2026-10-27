@@ -5,7 +5,7 @@ cd "$(dirname "$(readlink -f "$0")")"
 PORT=${PORT:-8080}
 
 if [ -f .lan-racer.pid ] && kill -0 "$(cat .lan-racer.pid)" 2>/dev/null; then
-  echo "Neon Harbor is already running (pid $(cat .lan-racer.pid))."
+  echo "LAN Racer 3D is already running (pid $(cat .lan-racer.pid))."
 else
   if [ ! -x lan-racer ] || [ -n "$(find main.go static -newer lan-racer -print -quit)" ]; then
     echo "Building…"
