@@ -1,3 +1,10 @@
+// Player state on the wire: [x, z, yaw, height, pitch, vx, vz, steer, flags (nitro 1 | brake 2 | drift 4), progress,
+// finish ms, pursuit bounty?, pursuit cops?]
+export function unpackState(a) {
+  return { x: a[0], z: a[1], y: a[2], h: a[3], pp: a[4], vx: a[5], vz: a[6], st: a[7], n: a[8] & 1, br: (a[8] >> 1) & 1, d: (a[8] >> 2) & 1,
+    p: a[9], f: a[10], b: a[11], c: a[12] };
+}
+
 export class Net {
   constructor(handlers) {
     this.h = handlers;
@@ -48,10 +55,11 @@ export class Net {
       if (p.id === this.id) continue;
       let r = this.remotes.get(p.id);
       if (!r) { r = { buf: [] }; this.remotes.set(p.id, r); }
-      r.buf.push({ t: m.now, s: p.s });
+      const s = unpackState(p.s);
+      r.buf.push({ t: m.now, s });
       r.recv = performance.now();
       if (r.buf.length > 30) r.buf.shift();
-      r.last = p.s;
+      r.last = s;
     }
   }
 

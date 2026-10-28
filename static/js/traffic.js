@@ -193,8 +193,20 @@ function bakeReal(gltf, cfg) {
 
 // Full-detail versions (the player-car files) for close-up traffic, loaded in the background after a map is ready.
 const nearCache = {};
+// Traffic models are used by every map, so they stay on the GPU for the whole session (disposeCity skips anything
+// marked shared) and their vertex/pixel data can leave JS memory once uploaded.
+function markShared(m) {
+  for (const g of [m.geo, m.head, m.tail, m.extra, ...(m.parts || []).map((p) => p.geo)]) if (g) g.userData.shared = true;
+  for (const mat of [m.mat, ...(m.parts || []).map((p) => p.mat)]) {
+    if (!mat) continue;
+    mat.userData.shared = true;
+    for (const k in mat) if (mat[k]?.isTexture) mat[k].userData.shared = true;
+  }
+  return m;
+}
+
 export function loadNearModel(id) {
-  return (nearCache[id] ||= gltfLoader().loadAsync(`models/vehicles/${id}.glb`).then((g) => bakeReal(g, REAL[id])).catch(() => null));
+  return (nearCache[id] ||= gltfLoader().loadAsync(`models/vehicles/${id}.glb`).then((g) => markShared(bakeReal(g, REAL[id]))).catch(() => null));
 }
 export const realIds = () => Object.keys(REAL);
 
@@ -206,9 +218,9 @@ export async function loadTrafficModels(onProgress) {
   let done = 0;
   const tick = () => onProgress?.(++done / (KENNEY.length + real.length));
   await Promise.all([
-    ...KENNEY.map(async (t) => { out[t] = bake(await loader.loadAsync(`models/kenney/${t}.glb`)); tick(); }),
+    ...KENNEY.map(async (t) => { out[t] = markShared(bake(await loader.loadAsync(`models/kenney/${t}.glb`))); tick(); }),
     ...real.map(async (id) => {
-      try { out['real:' + id] = bakeReal(await loader.loadAsync(`models/traffic/${id}.glb`), REAL[id]); } catch (e) { console.warn('traffic model', id, e); }
+      try { out['real:' + id] = markShared(bakeReal(await loader.loadAsync(`models/traffic/${id}.glb`), REAL[id])); } catch (e) { console.warn('traffic model', id, e); }
       tick();
     }),
   ]);
@@ -479,12 +491,12 @@ export class Traffic {
     // headlight beams on the road
     this.beams = new THREE.InstancedMesh(new THREE.PlaneGeometry(4, 16).rotateX(-Math.PI / 2).translate(0, 0.06, 10),
       new THREE.MeshBasicMaterial({ map: beamTexture(), color: 0xfff1d8, transparent: true, opacity: 0.22, blending: THREE.AdditiveBlending, depthWrite: false }), this.cars.length);
-    this.beams.frustumCulled = false; this.beams.count = 0;
+    this.beams.frustumCulled = false; this.beams.count = 0; this.beams.instanceMatrix.setUsage(THREE.DynamicDrawUsage); // refilled every frame
     scene.add(this.beams); this.meshes.push(this.beams);
     // contact shadows: one instanced draw for every visible vehicle, so traffic sits on the road instead of floating
     this.shadows = new THREE.InstancedMesh(new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
       new THREE.MeshBasicMaterial({ map: shadowTexture(), transparent: true, depthWrite: false, opacity: 0.75, polygonOffset: true, polygonOffsetFactor: -2 }), this.cars.length);
-    this.shadows.frustumCulled = false; this.shadows.count = 0; this.shadows.renderOrder = 1;
+    this.shadows.frustumCulled = false; this.shadows.count = 0; this.shadows.renderOrder = 1; this.shadows.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     scene.add(this.shadows); this.meshes.push(this.shadows);
     this._ss = new THREE.Vector3(); this._sq = new THREE.Quaternion(); this._yAxis = new THREE.Vector3(0, 1, 0);
     this._m = new THREE.Matrix4(); this._q = new THREE.Quaternion(); this._p = new THREE.Vector3(); this._e = new THREE.Euler(0, 0, 0, 'YXZ');

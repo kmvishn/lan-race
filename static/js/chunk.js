@@ -76,3 +76,63 @@ function splitInstanced(o) {
   parent.remove(o);
   return cells.size;
 }
+
+// Once the GPU has a copy, static scenery needs no vertex or pixel data in JS memory (well over 100 MB on long routes).
+// Vertex buffers are dropped as they upload (bounding volumes are computed first, since culling needs them). Anything
+// that moves or is updated later is skipped; traffic models, reused by every map, stay on the GPU (see markShared in
+// traffic.js). A lost GPU context would need a reload.
+const dropArray = function () { this.array = null; };
+export function releaseOnUpload(root, skip = new Set()) {
+  root.traverse((o) => {
+    if (skip.has(o) || o.userData.dynamic || !o.geometry?.attributes) return;
+    const g = o.geometry;
+    if (!g.boundingSphere && g.attributes.position?.array) g.computeBoundingSphere();
+    if (o.isInstancedMesh && o.instanceMatrix.usage !== THREE.DynamicDrawUsage) { // moving instances keep their buffers
+      if (!o.boundingSphere) o.computeBoundingSphere();
+      o.instanceMatrix.onUpload(dropArray);
+      o.instanceColor?.onUpload(dropArray);
+    }
+    for (const a of [...Object.values(g.attributes), g.index]) {
+      if (a && !a.isInterleavedBufferAttribute && a.usage !== THREE.DynamicDrawUsage) a.onUpload(dropArray);
+    }
+  });
+}
+
+// Texture images under root, once every texture sharing that image is on the GPU. Textures that are redrawn later
+// mark themselves with userData.live.
+export function releaseImages(root, renderer, skip = new Set()) {
+  const bySource = new Map();
+  const add = (t) => { if (!t?.isTexture) return; let l = bySource.get(t.source); if (!l) bySource.set(t.source, l = new Set()); l.add(t); };
+  root.traverse((o) => {
+    if (skip.has(o)) return;
+    for (const m of [].concat(o.material || [])) {
+      for (const k in m) add(m[k]);
+      for (const k in m.uniforms || {}) add(m.uniforms[k].value);
+    }
+  });
+  const onGpu = (t) => { const p = renderer.properties.get(t); return p.__webglTexture !== undefined && p.__version === t.version; };
+  let n = 0;
+  for (const [src, list] of bySource) {
+    const ts = [...list];
+    if (ts.some((t) => t.userData.live || t.isVideoTexture || t.isCompressedTexture || t.isDataTexture || !onGpu(t)) || !src.data) continue;
+    src.data.close?.(); // ImageBitmap
+    src.data = null;
+    n++;
+  }
+  return n;
+}
+
+// Scenery never moves, so its transforms are computed once and the per-frame scene update skips those subtrees.
+// Subtrees with userData.update (animated landmarks) keep updating; children added to root later update normally.
+export function freezeStatic(root) {
+  root.updateMatrixWorld(true);
+  const freeze = (o) => {
+    if (o.userData.update) return true;
+    let live = false;
+    for (const c of o.children) live = freeze(c) || live;
+    o.matrixAutoUpdate = false;
+    o.matrixWorldAutoUpdate = live;
+    return live;
+  };
+  for (const c of root.children) freeze(c);
+}

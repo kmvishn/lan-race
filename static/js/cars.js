@@ -81,8 +81,9 @@ const flameOuter = new THREE.MeshBasicMaterial({ color: new THREE.Color(2.4, 0.7
 const flameInner = new THREE.MeshBasicMaterial({ color: new THREE.Color(0.5, 1.2, 4.2), transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false });
 
 // Vehicle textures are GPU-compressed KTX2 (Basis), transcoded in the browser to whatever the GPU supports.
-let ktx2 = null;
+let ktx2 = null, gl = null;
 export function initTextureDecoder(renderer) {
+  gl = renderer;
   ktx2 = new KTX2Loader().setTranscoderPath('vendor/three/examples/jsm/libs/basis/').detectSupport(renderer);
 }
 export function gltfLoader() {
@@ -215,6 +216,22 @@ export function autoWheels(scene, cfg) {
 const loading = {};
 let loader = null;
 export const carLoaded = (id) => !!protos[id];
+// Car prototypes live for the whole session, so once every texture of a model is on the GPU their pixel data can leave
+// JS memory. (Textures in one model can share image data, hence waiting for all of them.)
+function releaseTexturesWhenUploaded(root) {
+  const ts = new Set();
+  root.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) ts.add(m[k]); });
+  const onGpu = (t) => { const p = gl.properties.get(t); return p.__webglTexture !== undefined && p.__version === t.version; };
+  const check = () => {
+    if (![...ts].every(onGpu)) return;
+    for (const t of ts) {
+      t.onUpdate = null;
+      for (const m of t.mipmaps || []) m.data = null; // KTX2 levels
+      if (!t.isCompressedTexture && t.source.data) { t.source.data.close?.(); t.source.data = null; }
+    }
+  };
+  for (const t of ts) t.onUpdate = () => queueMicrotask(check); // runs after three.js records the upload
+}
 export function ensureCar(id, onProgress) {
   return (loading[id] ||= (async () => {
     const cfg = CARS[id];
@@ -232,6 +249,7 @@ export function ensureCar(id, onProgress) {
       protos[id] = normalizeVehicle(gltf.scene, cfg.wheelObjs, 1, cfg.len, cfg.yaw || 0);
     } else protos[id] = normalizeVehicle(gltf.scene, cfg.wheels);
     bakeCar(protos[id].norm, cfg);
+    releaseTexturesWhenUploaded(protos[id].norm);
     return id;
   })());
 }
@@ -455,6 +473,7 @@ export class CarVisual {
         new THREE.MeshBasicMaterial({ map: beamTex, color: 0xfff1d8, transparent: true, opacity: 0.1, blending: THREE.AdditiveBlending, depthWrite: false }));
       b.rotation.x = -Math.PI / 2; b.position.set(0, 0.04, d.maxZ + 12);
       this.root.add(b);
+      this.beam = b;
     }
 
     if (police) {

@@ -15,7 +15,7 @@ import { addSky, applySky, buildEnvironment, createComposer, FOG_COLOR } from '.
 import { THEMES } from './themes.js';
 import { planLandmarks } from './landmarks.js';
 import { planPois, buildPois } from './pois.js';
-import { chunkStatic } from './chunk.js';
+import { chunkStatic, releaseOnUpload, releaseImages, freezeStatic } from './chunk.js';
 import { buildIndia } from './india.js';
 
 const $ = (id) => document.getElementById(id);
@@ -25,6 +25,8 @@ const STEP = 1 / 120;
 // ---------- renderer / scene ----------
 const renderer = new THREE.WebGLRenderer({ canvas: $('view'), antialias: false, powerPreference: 'high-performance' });
 renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
+// Reading shader compile logs blocks until each shader finishes compiling; only worth it when debugging (?debug).
+renderer.debug.checkShaderErrors = location.search.includes('debug');
 renderer.setSize(innerWidth, innerHeight);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 0.95;
@@ -163,14 +165,15 @@ function setCar(id) {
   if (myVis && myVis.carId !== car) swapCar();
   prefetchCars();
 }
-// Builds the new car and compiles its shaders off the main thread before showing it, so the swap doesn't hitch.
+// Builds the new car, compiles its shaders off the main thread and uploads it before showing it, so the swap doesn't hitch.
 let swapTok = 0;
 async function swapCar() {
   const tok = ++swapTok, vis = new CarVisual(car, color, { name });
-  vis.root.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) renderer.initTexture(m[k]); });
-  await renderer.compileAsync(vis.root, camera, scene);
+  await compileAsync(vis.root, scene);
   if (tok !== swapTok || !myVis) { vis.dispose(); return; }
-  myVis.dispose(); myVis = vis; scene.add(vis.root);
+  scene.add(vis.root);
+  uploadNow(vis.root);
+  myVis.dispose(); myVis = vis;
   refreshPaint();
 }
 // Downloads the cars either side of the selection while idle, so cycling through the roster is instant.
@@ -394,6 +397,10 @@ function syncRemoteVisuals() {
       const ready = carLoaded(p.car) || !CARS[p.car];
       if (!ready) ensureCar(p.car).then(syncRemoteVisuals);
       r.vis = new CarVisual(p.car, p.color, { name: p.name }); r.color = p.color; r.name = p.name; r.car = ready ? p.car : null; scene.add(r.vis.root);
+      // compile its shaders off the main thread first, so a player joining (or their car arriving) doesn't hitch
+      const vis = r.vis;
+      vis.root.visible = false;
+      compileAsync(vis.root, scene).then(() => { if (!vis.root.parent) return; vis.root.visible = true; uploadNow(vis.root); });
     }
   }
 }
@@ -408,11 +415,11 @@ function disposeCity() {
   if (!city) return;
   city.removeFromParent();
   city.traverse((o) => {
-    o.geometry?.dispose();
+    if (!o.geometry?.userData.shared) o.geometry?.dispose(); // shared traffic models stay on the GPU for the next map
     for (const m of [].concat(o.material || [])) {
-      for (const k of ['map', 'roughnessMap', 'emissiveMap']) m[k]?.dispose?.();
+      for (const k of ['map', 'roughnessMap', 'emissiveMap']) if (!m[k]?.userData?.shared) m[k]?.dispose?.();
       m.uniforms?.map?.value?.dispose?.();
-      m.dispose();
+      if (!m.userData.shared) m.dispose();
     }
   });
   city = null;
@@ -442,6 +449,8 @@ async function loadMap(id, progress) {
   traffic = new Traffic(city, track, trafficModels, T, id, world.groundY);
   traffic.drawDist = Q.traffic;
   chunkStatic(city, new Set(traffic.meshes)); // route-long static meshes -> 400 m tiles the camera can cull
+  releaseOnUpload(city);
+  freezeStatic(city);
   traffic.onKnock = (gi, k, imp) => {
     net?.send({ t: 'knock', k: { gi, x: k.x, y: k.y, z: k.z, vx: k.vx, vy: k.vy, vz: k.vz, yaw: k.yaw, pitch: 0, roll: 0, wy: k.wy, wp: k.wp, wr: k.wr } });
     if (imp > 6) hud.popup(imp > 14 ? 'WRECKED!' : 'TAKEDOWN', '#ffb400');
@@ -465,23 +474,59 @@ async function loadMap(id, progress) {
   if (!policeWarm) { policeWarm = new CarVisual(POLICE_CAR, 0x08090c, { police: true, beam: false }); scene.add(policeWarm.root); }
   const near = loadNearTraffic(traffic);
   renderLobby();
+  const c = city, release = () => { if (city === c) releaseImages(c, renderer); };
   if (progress) {
     await warmUp([...traffic.meshes, policeWarm.root]);
+    release();
     // close-up traffic models: worth waiting for briefly at boot, otherwise they finish in the background
     await Promise.race([near, new Promise((r) => setTimeout(r, 4000))]);
-  } else warmUp([...traffic.meshes, policeWarm.root]);
+  } else warmUp([...traffic.meshes, policeWarm.root]).then(release);
 }
 
 // Uploads every texture and geometry and compiles every shader in the scene (plus the given hidden objects) up front.
 // Shaders compile in parallel off the main thread where the browser supports it; then one render into a tiny target
 // with culling off uploads all geometry, so nothing first appears (and stalls) mid-race.
 const warmRT = new THREE.WebGLRenderTarget(4, 4);
+// Like renderer.compileAsync (shaders link in parallel off the main thread where supported), but compiled for an
+// offscreen target, which is what the post-processing chain renders into (on-screen variants differ: tone mapping,
+// colour space), and a material disposed meanwhile (a player leaving) just drops out instead of making three.js throw.
+function compileAsync(obj, target = null) {
+  renderer.setRenderTarget(warmRT);
+  const mats = renderer.compile(obj, camera, target);
+  renderer.setRenderTarget(null);
+  return new Promise((resolve) => {
+    const check = () => {
+      for (const mt of mats) { const p = renderer.properties.get(mt).currentProgram; if (!p || p.isReady()) mats.delete(mt); }
+      if (mats.size) setTimeout(check, 10); else resolve();
+    };
+    setTimeout(check, 10);
+  });
+}
+// Uploads objects' geometry and textures (hidden parts too) by rendering only them, plus the scene's lights so the
+// shaders match, into the tiny offscreen target: camera layer 31 holds just those.
+const warmCam = new THREE.PerspectiveCamera();
+function uploadNow(...roots) {
+  scene.traverse((o) => { if (o.isLight) o.layers.enable(31); });
+  const culled = [], hidden = [];
+  for (const root of roots) root.traverse((o) => {
+    o.layers.enable(31);
+    if (o.frustumCulled) { o.frustumCulled = false; culled.push(o); }
+    if (!o.visible) { o.visible = true; hidden.push(o); }
+  });
+  warmCam.copy(camera); warmCam.layers.set(31);
+  renderer.setRenderTarget(warmRT);
+  renderer.render(scene, warmCam);
+  renderer.setRenderTarget(null);
+  for (const root of roots) root.traverse((o) => o.layers.disable(31));
+  for (const o of culled) o.frustumCulled = true;
+  for (const o of hidden) o.visible = false;
+}
 async function warmUp(extra = []) {
   const show = (on, list) => { for (const o of list) o.visible = on; };
   const hidden = extra.filter((o) => !o.visible);
   scene.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) renderer.initTexture(m[k]); });
   show(true, hidden);
-  const ready = renderer.compileAsync(scene, camera);
+  const ready = compileAsync(scene);
   show(false, hidden);
   await ready;
   const culled = [];
@@ -502,7 +547,12 @@ async function loadNearTraffic(tr) {
   const models = await Promise.all(ids.map((id) => loadNearModel(id)));
   if (traffic !== tr) return; // map changed meanwhile
   const meshes = ids.flatMap((id, i) => (models[i] ? tr.attachNear('real:' + id, models[i]) : []));
-  if (meshes.length) await warmUp(meshes);
+  if (!meshes.length) return;
+  for (const im of meshes) releaseOnUpload(im);
+  await Promise.all(meshes.map((im) => compileAsync(im, scene)));
+  if (traffic !== tr) return;
+  uploadNow(...meshes); // just these meshes, not the whole scene
+  releaseImages(city, renderer);
 }
 
 // ---------- flow ----------
@@ -741,10 +791,11 @@ function updateRace(dt, inp, st, t) {
   G.sendT -= dt;
   if (G.sendT <= 0) {
     G.sendT = 0.05;
-    const r2 = (v) => Math.round(v * 100) / 100;
-    const s = { x: r2(me.x), z: r2(me.z), y: r2(me.yaw), h: r2(me.y), pp: r2(me.pitch), vx: r2(me.vx), vz: r2(me.vz), st: r2(me.steer), n: me.nitroOn ? 1 : 0,
-      br: me.brake > 0.3 ? 1 : 0, d: me.drifting || (me.handbrake && me.speed > 6) ? 1 : 0, p: Math.round(G.prog), f: G.finishMs };
-    if (G.mode === 'pursuit') { s.b = pursuit.banked + Math.floor(pursuit.bounty); s.h = pursuit.heat; s.c = pursuit.snapshot(); }
+    // compact array (see unpackState in net.js): every player receives every other player's state 20x a second
+    const r2 = (v) => Math.round(v * 100) / 100, r3 = (v) => Math.round(v * 1000) / 1000;
+    const flags = (me.nitroOn ? 1 : 0) | (me.brake > 0.3 ? 2 : 0) | (me.drifting || (me.handbrake && me.speed > 6) ? 4 : 0);
+    const s = [r2(me.x), r2(me.z), r3(me.yaw), r2(me.y), r3(me.pitch), r2(me.vx), r2(me.vz), r2(me.steer), flags, Math.round(G.prog), G.finishMs];
+    if (G.mode === 'pursuit') s.push(pursuit.banked + Math.floor(pursuit.bounty), pursuit.snapshot());
     net.send({ t: 's', s });
   }
 
@@ -811,6 +862,17 @@ function updateRemotes(dt, st, t) {
       syncRemoteCops(r, [], dt, t);
     }
   }
+  // Each car's road beam is a big additive quad: with a crowd around you the overlapping beams cost more GPU than the
+  // cars themselves, so only the nearest few other players light the road.
+  const lit = [];
+  for (const [, r] of remotes) {
+    const b = r.vis?.beam; if (!b) continue;
+    const p = r.vis.root.position, d2 = (p.x - camera.position.x) ** 2 + (p.z - camera.position.z) ** 2;
+    b.visible = false;
+    if (d2 < 60 * 60) lit.push([d2, b]);
+  }
+  if (lit.length > 4) lit.sort((a, b) => a[0] - b[0]);
+  for (let k = 0; k < Math.min(4, lit.length); k++) lit[k][1].visible = true;
 }
 function syncRemoteCops(r, arr, dt, t) {
   while (r.cops.length < arr.length) { const v = new CarVisual(POLICE_CAR, 0x08090c, { police: true, beam: false }); scene.add(v.root); r.cops.push(v); }

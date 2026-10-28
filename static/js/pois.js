@@ -154,7 +154,7 @@ function photoBoard(p, track, groundY) {
   const W = 1024, H = 640;
   const c = document.createElement('canvas'); c.width = W; c.height = H;
   const x = c.getContext('2d');
-  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4;
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 4; tex.userData.live = true; // redrawn when the photo arrives
   const strip = (img) => {
     x.fillStyle = '#10141c'; x.fillRect(0, 0, W, H);
     if (img) {

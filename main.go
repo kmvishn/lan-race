@@ -70,7 +70,7 @@ type Client struct {
 	car    string
 	joined int
 	conn   *websocket.Conn
-	send   chan []byte
+	send   chan *websocket.PreparedMessage
 	room   *Room // nil while browsing the room list
 	state  json.RawMessage
 	bounty int
@@ -109,26 +109,34 @@ func newHub() *Hub {
 	return &Hub{clients: map[string]*Client{}, rooms: map[string]*Room{}}
 }
 
-func (h *Hub) sendTo(c *Client, v any) {
+// prepare encodes a message once; with per-message compression it is also compressed only once, however many
+// players it goes to.
+func prepare(v any) *websocket.PreparedMessage {
 	b, err := json.Marshal(v)
 	if err != nil {
-		return
+		return nil
 	}
-	select {
-	case c.send <- b:
-	default:
+	pm, err := websocket.NewPreparedMessage(websocket.TextMessage, b)
+	if err != nil {
+		return nil
 	}
+	return pm
 }
 
+func (h *Hub) sendTo(c *Client, v any) { sendAll(map[string]*Client{c.id: c}, v) }
+
 func sendAll(cs map[string]*Client, v any) {
-	b, err := json.Marshal(v)
-	if err != nil {
+	if len(cs) == 0 {
+		return
+	}
+	pm := prepare(v)
+	if pm == nil {
 		return
 	}
 	for _, c := range cs {
 		select {
-		case c.send <- b:
-		default:
+		case c.send <- pm:
+		default: // slow client: drop rather than stall the room
 		}
 	}
 }
@@ -333,7 +341,7 @@ type inMsg struct {
 	ID      string          `json:"id"`
 }
 
-var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}
+var upgrader = websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }, EnableCompression: true}
 
 func (h *Hub) serveWS(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -343,16 +351,16 @@ func (h *Hub) serveWS(w http.ResponseWriter, r *http.Request) {
 	h.mu.Lock()
 	h.nextID++
 	c := &Client{id: fmt.Sprintf("p%d", h.nextID), name: fmt.Sprintf("Racer %d", h.nextID), color: "#c00000", car: "ferrari",
-		joined: h.nextID, conn: conn, send: make(chan []byte, 128)}
+		joined: h.nextID, conn: conn, send: make(chan *websocket.PreparedMessage, 128)}
 	h.clients[c.id] = c
 	h.sendTo(c, map[string]any{"t": "welcome", "id": c.id, "now": nowMs()})
 	h.broadcastRooms()
 	h.mu.Unlock()
 
 	go func() {
-		for b := range c.send {
+		for pm := range c.send {
 			conn.SetWriteDeadline(time.Now().Add(2 * time.Second))
-			if err := conn.WriteMessage(websocket.TextMessage, b); err != nil {
+			if err := conn.WritePreparedMessage(pm); err != nil {
 				conn.Close()
 				return
 			}
@@ -478,25 +486,21 @@ func (h *Hub) handle(c *Client, m *inMsg) {
 			return
 		}
 		c.state = m.S
-		var s struct {
-			B int `json:"b"`
-		}
-		if json.Unmarshal(m.S, &s) == nil {
-			c.bounty = s.B
+		var s []json.RawMessage // compact state array; index 11 is the pursuit bounty
+		if json.Unmarshal(m.S, &s) == nil && len(s) > 11 {
+			json.Unmarshal(s[11], &c.bounty)
 		}
 	case "knock":
 		if r == nil {
 			return
 		}
-		b, _ := json.Marshal(map[string]any{"t": "knock", "k": m.K})
+		others := map[string]*Client{}
 		for id, o := range r.clients {
 			if id != c.id {
-				select {
-				case o.send <- b:
-				default:
-				}
+				others[id] = o
 			}
 		}
+		sendAll(others, map[string]any{"t": "knock", "k": m.K})
 	case "fin":
 		if r != nil && r.phase == "race" && c.fin == 0 && m.Time > 0 {
 			c.fin = m.Time
@@ -517,7 +521,9 @@ func (h *Hub) snapshotLoop() {
 					ps = append(ps, map[string]any{"id": c.id, "s": c.state})
 				}
 			}
-			r.broadcast(map[string]any{"t": "snap", "now": nowMs(), "p": ps})
+			if len(ps) > 0 { // nobody driving (lobby): nothing to send
+				r.broadcast(map[string]any{"t": "snap", "now": nowMs(), "p": ps})
+			}
 		}
 		h.mu.Unlock()
 	}
