@@ -175,6 +175,34 @@ button.go:active { transform: scale(.98); }
 #lobby .me { color: var(--cyan); }
 #lobby .car { color: #8a93a6; font: 700 10px Arial; letter-spacing: 1px; margin-left: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-transform: uppercase; }
 #joinHint { font-size: 11px; }
+#roomTitle { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+#lobby .kick { margin-left: auto; flex: none; background: transparent; color: #ff8a9a; border: 1px solid rgba(255, 45, 75, .55); font: 900 9px Arial; letter-spacing: 2px;
+  padding: 4px 7px; cursor: pointer; transform: skewX(-12deg); }
+#lobby .kick:hover { background: var(--hot); color: #fff; }
+.mn-leave { margin-top: 12px; width: 100%; background: transparent; color: #cfd6e4; border: 1px solid #3a4256; padding: 9px; font: italic 900 12px Arial; letter-spacing: 3px;
+  cursor: pointer; transform: skewX(-12deg); transition: all .15s; }
+.mn-leave:hover { border-color: var(--hot); color: #fff; background: rgba(255, 45, 75, .15); }
+/* room browser */
+.mn-create { display: flex; gap: 10px; margin-bottom: 8px; }
+#roomName { flex: 1; min-width: 0; background: #0a0c13; border: 1px solid #262c3c; border-left: 3px solid var(--hot); color: #fff; font: italic 900 15px "Arial Black", Impact, sans-serif;
+  padding: 10px; outline: none; }
+#roomName:focus { border-color: var(--hot); }
+.mn-create .go { width: auto; margin: 0; padding: 10px 22px; font-size: 16px; }
+#roomMsg { min-height: 18px; margin-bottom: 10px; font: italic 800 12px Arial; letter-spacing: 1px; color: var(--amber); }
+#roomList { display: flex; flex-direction: column; gap: 8px; margin-bottom: 8px; }
+#roomList .empty { padding: 22px 10px; text-align: center; color: #6a7286; font: italic 700 13px Arial; border: 1px dashed #2a3044; }
+#roomList .room { display: flex; align-items: center; gap: 12px; padding: 10px 12px; background: #0b0d15; border: 1px solid #262c3c; border-left: 3px solid var(--cyan);
+  animation: mn-in-l .3s cubic-bezier(.2, .8, .2, 1) both; }
+#roomList .room.busy { border-left-color: #4a5268; opacity: .75; }
+#roomList .rn { flex: 1; min-width: 0; }
+#roomList .rn b { display: block; font: italic 900 15px "Arial Black", Impact, sans-serif; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#roomList .rn span { display: block; font: 700 10px Arial; letter-spacing: 1px; color: #8a93a6; text-transform: uppercase; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+#roomList .rc { font: italic 900 18px Arial; color: #fff; text-align: center; line-height: 1; }
+#roomList .rc small { display: block; font: 900 8px Arial; letter-spacing: 2px; color: #6a7286; }
+#roomList button { background: var(--cyan); color: var(--ink); border: 0; font: italic 900 12px Arial; letter-spacing: 2px; padding: 9px 14px; cursor: pointer; transform: skewX(-12deg); }
+#roomList button:hover { filter: brightness(1.15); box-shadow: 0 0 14px rgba(57, 230, 255, .6); }
+#roomList .st { font: 900 9px Arial; letter-spacing: 2px; color: #000; background: #8a93a6; padding: 4px 7px; transform: skewX(-12deg); }
+#roomList .st.race { background: var(--hot); color: #fff; }
 details.panel summary, .mn-credits summary { cursor: pointer; list-style: none; font: italic 900 13px "Arial Black", Impact, sans-serif; letter-spacing: 2px; }
 details.panel summary::after, .mn-credits summary::after { content: ' +'; color: var(--hot); }
 details[open].panel summary::after, .mn-credits[open] summary::after { content: ' –'; }

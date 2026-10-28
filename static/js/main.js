@@ -210,7 +210,13 @@ addEventListener('keydown', () => audio.start());
 
 function renderLobby() {
   if (!net) return;
-  const L = G.lobby, host = isHost();
+  const L = G.lobby, host = isHost(), inRoom = !!L.room;
+  $('roomPanel').classList.toggle('hidden', inRoom);
+  $('hostPanel').classList.toggle('hidden', !inRoom);
+  $('gridPanel').classList.toggle('hidden', !inRoom);
+  renderRooms();
+  if (!inRoom) return;
+  $('roomTitle').textContent = L.room.name;
   const sel = $('mapSel');
   if (sel.options.length !== mapIndex.length) {
     sel.innerHTML = mapIndex.map((m) => `<option value="${m.id}">${esc(m.name)} — ${esc(m.sub)}</option>`).join('');
@@ -223,7 +229,8 @@ function renderLobby() {
   const open = info && !info.closed;
   $('modeSeg').children[0].textContent = open ? 'SPRINT' : 'CIRCUIT RACE';
   $('lobby').innerHTML = L.players.map((p) =>
-    `<div class="p"><i class="dot" style="background:${p.color}"></i><span class="${p.id === net.id ? 'me' : ''}">${esc(p.name)}</span><span class="car">${esc(CARS[p.car]?.name || '')}</span>${p.id === L.host ? '<span class="tag">HOST</span>' : ''}</div>`).join('');
+    `<div class="p"><i class="dot" style="background:${p.color}"></i><span class="${p.id === net.id ? 'me' : ''}">${esc(p.name)}</span><span class="car">${esc(CARS[p.car]?.name || '')}</span>${p.id === L.host ? '<span class="tag">HOST</span>' : ''}`
+    + `${host && p.id !== net.id ? `<button class="kick" data-kick="${esc(p.id)}" data-name="${esc(p.name)}">KICK</button>` : ''}</div>`).join('');
   $('lobbyCount').textContent = `${L.players.length} DRIVER${L.players.length === 1 ? '' : 'S'}`;
   for (const b of $('modeSeg').children) { b.classList.toggle('on', b.dataset.mode === L.mode); b.disabled = !host; }
   for (const b of $('lapSeg').children) { b.classList.toggle('on', +b.dataset.laps === L.laps); b.disabled = !host; }
@@ -231,7 +238,7 @@ function renderLobby() {
   $('lapsRow').style.display = L.mode === 'race' && !open ? '' : 'none';
   $('startBtn').style.display = host ? '' : 'none';
   $('waitHost').style.display = host ? 'none' : '';
-  $('hostNote').textContent = host ? '(you are host)' : '';
+  $('hostNote').textContent = host ? '(you are host)' : `host: ${L.players.find((p) => p.id === L.host)?.name || ''}`;
   $('joinHint').textContent = `Friends on your network open ${location.host === 'localhost:8080' || location.hostname === '127.0.0.1' ? 'this machine\'s LAN IP (printed by the server)' : 'http://' + location.host}`;
   $('lobbyBtn').style.display = host ? '' : 'none';
   $('resWait').style.display = host ? 'none' : '';
@@ -313,8 +320,12 @@ function drawMapPreviews(id, host) {
 // ---------- networking ----------
 let net = null;
 const netHandlers = {
-  welcome: () => sendHello(),
+  welcome: () => { if (G.lobby.room) leftRoom('reconnected'); sendHello(); },
+  rooms: (m) => { G.rooms = m.rooms; G.online = m.online; renderRooms(); },
+  left: (m) => leftRoom(m.reason, m.room),
+  err: (m) => roomMsg(m.text),
   lobby: (m) => {
+    if (m.room?.id !== G.lobby.room?.id) $('chatLog').innerHTML = ''; // new room, new conversation
     G.lobby = m;
     if (m.map && m.map !== G.mapId && G.phase === 'menu') queueMap(m.map);
     renderLobby();
@@ -329,6 +340,45 @@ const netHandlers = {
   chat: (m) => appendChat(m),
 };
 function sendHello() { net.send({ t: 'hello', name, color, car }); }
+
+// ---------- rooms ----------
+// Players browse rooms, create one (and control it) or join one that hasn't started. Leaving, being kicked or the
+// creator closing the room all land back here.
+const EMPTY_LOBBY = { players: [], host: null, phase: 'lobby', room: null };
+function leftRoom(reason, room = '') {
+  G.lobby = { ...EMPTY_LOBBY };
+  $('chatLog').innerHTML = '';
+  net.remotes.clear();
+  syncRemoteVisuals();
+  if (G.phase === 'race' || G.phase === 'results') toMenu();
+  roomMsg({ kicked: `You were kicked from ${room}.`, closed: `${room} was closed by its creator.`, reconnected: 'Connection lost — rejoin a room.' }[reason] || '');
+  renderLobby();
+}
+function roomMsg(text) {
+  $('roomMsg').textContent = text;
+  clearTimeout(roomMsg.t);
+  if (text) roomMsg.t = setTimeout(() => { $('roomMsg').textContent = ''; }, 8000);
+}
+function renderRooms() {
+  const rooms = G.rooms || [];
+  $('roomsOnline').textContent = G.online ? `${G.online} ONLINE` : '';
+  $('roomName').placeholder = `${name}'s room`;
+  const mapName = (id) => mapIndex.find((q) => q.id === id)?.name || id;
+  $('roomList').innerHTML = rooms.length ? rooms.map((r) => {
+    const open = r.phase === 'lobby';
+    return `<div class="room${open ? '' : ' busy'}"><div class="rn"><b>${esc(r.name)}</b><span>${esc(r.host)} · ${esc(mapName(r.map))} · ${r.mode === 'pursuit' ? 'COP PURSUIT' : 'RACE'}</span></div>`
+      + `<span class="rc">${r.players}<small>${r.players === 1 ? 'DRIVER' : 'DRIVERS'}</small></span>`
+      + (open ? `<button data-room="${esc(r.id)}">JOIN</button>` : `<span class="st race">${r.phase === 'race' ? 'RACING' : 'RESULTS'}</span>`) + '</div>';
+  }).join('') : '<div class="empty">No rooms yet. Create one, and friends on your network can join it.</div>';
+}
+$('roomList').onclick = (e) => { const id = e.target.closest('button[data-room]')?.dataset.room; if (id) { audio.start(); net.send({ t: 'join', room: id }); } };
+$('createRoom').onclick = () => { audio.start(); net.send({ t: 'create', name: $('roomName').value.trim() }); $('roomName').value = ''; };
+$('roomName').addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.stopPropagation(); $('createRoom').click(); } });
+$('leaveRoom').onclick = () => net.send({ t: 'leave' });
+$('lobby').onclick = (e) => {
+  const b = e.target.closest('button[data-kick]');
+  if (b && isHost() && confirm(`Kick ${b.dataset.name} from the room?`)) net.send({ t: 'kick', id: b.dataset.kick });
+};
 
 function syncRemoteVisuals() {
   if (!myVis) return;
@@ -1026,7 +1076,7 @@ function appendChat(m) {
   }
 }
 function updateChatPeers() {
-  const n = G.lobby?.players?.length || 0;
+  const n = G.lobby?.room ? G.lobby.players.length : G.online || 0;
   chatPeers.textContent = n;
 }
 chatPill.addEventListener('click', openChat);

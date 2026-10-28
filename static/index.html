@@ -53,7 +53,17 @@
     </div>
   </header>
 
-  <section class="mn-left panel cut" id="hostPanel">
+  <section class="mn-left panel cut" id="roomPanel">
+    <h2><i>01</i>ROOMS <small id="roomsOnline"></small></h2>
+    <label for="roomName">CREATE A ROOM</label>
+    <div class="mn-create"><input id="roomName" maxlength="24" spellcheck="false" autocomplete="off"><button id="createRoom" class="go"><span>CREATE</span></button></div>
+    <div id="roomMsg"></div>
+    <label>JOIN A ROOM</label>
+    <div id="roomList"></div>
+    <div id="roomHint" class="muted">You control the rooms you create. Others can join until the race starts.</div>
+  </section>
+
+  <section class="mn-left panel cut hidden" id="hostPanel">
     <h2><i>01</i>EVENT <small id="hostNote"></small></h2>
     <label>MAP</label>
     <select id="mapSel"></select>
@@ -94,10 +104,11 @@
   </section>
 
   <section class="mn-right">
-    <div class="panel cut">
-      <h2><i>03</i>GRID <small id="lobbyCount"></small></h2>
+    <div class="panel cut hidden" id="gridPanel">
+      <h2><i>03</i><span id="roomTitle">GRID</span> <small id="lobbyCount"></small></h2>
       <div id="lobby"></div>
       <div id="joinHint" class="muted"></div>
+      <button id="leaveRoom" class="mn-leave">LEAVE ROOM</button>
     </div>
     <div id="chatDock"></div>
     <details class="panel cut keys">

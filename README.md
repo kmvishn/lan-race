@@ -23,6 +23,7 @@ Bengaluru (Tin Factory → Brigade Senate 2) · Chennai · Mysuru · Wayanad gha
 - Local traffic per city: two-wheelers, autos, cars, lorries and city buses in regional liveries (BMTC, KSRTC, MTC, TGSRTC and private operators). Liveries are recreated in colour and lettering only; official emblems are not included.
 - Traffic is a deterministic driving simulation (same for every player): vehicles keep safe gaps, slow for bends, crawl uphill when heavy, overtake, filter between lanes and stop at bus stops. The vehicle mix per city follows published road counts and registration shares (e.g. Bengaluru ~70% two-wheelers).
 - Mass-based collisions: hitting an auto or scooter sends it flying, while buses and lorries barely move.
+- Rooms: create a room (only its creator picks the map and mode, starts the race and can kick players) or join one from the room list. Rooms can be joined only while they are in the lobby, not mid-race. A room closes when its creator leaves.
 - The lobby shows a route map with landmarks and an elevation profile for every map.
 
 ## Vehicles
