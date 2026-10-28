@@ -557,7 +557,7 @@ async function warmUp(extra = []) {
 // 1024 px compressed textures) for vehicles within ~45 m. All load in parallel and are warmed up in one go, so
 // nothing compiles on first sight.
 async function loadNearTraffic(tr) {
-  const ids = tr.types.map((ty) => ty.type.startsWith('real:') && ty.type.slice(5)).filter((id) => id && VEHICLE_CREDITS[id]);
+  const ids = tr.types.map((ty) => ty.type.startsWith('real:') && ty.type.slice(5)).filter((id) => id && VEHICLE_CREDITS[id] && !CARS[id]?.noNear);
   const models = await Promise.all(ids.map((id) => loadNearModel(id)));
   if (traffic !== tr) return; // map changed meanwhile
   // one vehicle type per frame (compile, textures in slices, then geometry), so the extra detail never hitches
@@ -623,18 +623,23 @@ const CAMS = [{ back: 6.4, up: 2.05, look: 0.95 }, { back: 4.4, up: 1.5, look: 0
 function updateCamera(dt, t) {
   const lb = input.lookBack();
   const m = CAMS[G.camMode];
+  // buses and lorries: the chase camera backs off and rises with the vehicle, cockpit views move to its real cab
+  const d = myVis?.dims, big = d && d.l > 5.2, s = big ? d.l / 4.4 : 1;
   if (m.back) {
     cam.yaw += wrapAngle(me.yaw - cam.yaw) * (1 - Math.exp(-dt * 6.5));
     const yaw = cam.yaw + (lb ? Math.PI : 0);
     const fx = Math.sin(yaw), fz = Math.cos(yaw);
-    const back = m.back + Math.min(me.speed, 100) * 0.018;
+    const back = m.back * s + Math.min(me.speed, 100) * 0.018;
+    const up = big ? d.h + m.up * 0.6 : m.up, look = big ? d.h * 0.55 : m.look;
     const cx = me.x - fx * back, cz = me.z - fz * back;
-    const cy = Math.max(me.y + m.up + Math.min(me.speed, 100) * 0.003, (world?.groundY?.(cx, cz) ?? -1e9) + 1.2);
+    const cy = Math.max(me.y + up + Math.min(me.speed, 100) * 0.003, (world?.groundY?.(cx, cz) ?? -1e9) + 1.2);
     camera.position.set(cx, cy, cz);
-    camera.lookAt(me.x + fx * 5, me.y + m.look, me.z + fz * 5);
+    camera.lookAt(me.x + fx * 5 * s, me.y + look, me.z + fz * 5 * s);
   } else {
     const yaw = me.yaw + (lb ? Math.PI : 0), fx = Math.sin(me.yaw), fz = Math.cos(me.yaw);
-    const off = m.hood ? (lb ? -1.6 : 0.1) : (lb ? -2.4 : 2.35), y = m.hood ? 1.18 : 0.55;
+    const off = big ? (m.hood ? (lb ? d.minZ * 0.6 : d.maxZ - 1.1) : (lb ? d.minZ - 0.3 : d.maxZ + 0.15))
+      : m.hood ? (lb ? -1.6 : 0.1) : (lb ? -2.4 : 2.35);
+    const y = big ? (m.hood ? d.h * 0.72 : 1.0) : m.hood ? 1.18 : 0.55;
     camera.position.set(me.x + fx * off, me.y + y, me.z + fz * off);
     camera.lookAt(camera.position.x + Math.sin(yaw) * 20, me.y + y - 0.4 + Math.tan(me.pitch) * 20, camera.position.z + Math.cos(yaw) * 20);
   }

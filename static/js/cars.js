@@ -52,6 +52,16 @@ export const CARS = {
   // the real 2001 BMW Motorsport E46 M3 GTR (the car Need for Speed: Most Wanted made famous), in its own livery
   // street-tuned Maruti 800: widebody, wing, mild turbo build (stock: 37 hp, ~140 km/h, 0-100 in ~17 s)
   m800: veh('m800', 'MARUTI 800 CUSTOM', 'TUNED CLASSIC', { top: 155, tAcc: 10.5, mass: 680, len: 3.4, grip: 1.08, voice: 1.2, noWheels: true }), // tyres merged per axle
+  // heavy metal: footprint (half width / half length) for walls and collisions, wide turning, slow steering. noNear:
+  // traffic copies already carry enough detail, so close-up traffic doesn't swap to these player models
+  keralabus: veh('keralabus', 'KERALA PRIVATE BUS', 'STAGE CARRIAGE', { top: 95, tAcc: 24, vAcc: 60, mass: 11000, len: 9.5, grip: 0.72, voice: 0.55,
+    turn: 0.42, steerRate: 3.5, body: { hw: 1.27, hl: 4.75, half: 4.75, r: 1.25 }, paint: () => false, flip: true, yaw: 180 , noNear: true}), // keeps its operator livery
+  tatalorry: veh('tatalorry', 'TATA SE LORRY', 'CLASSIC LORRY', { top: 80, tAcc: 30, vAcc: 60, mass: 9000, len: 7.4, grip: 0.7, voice: 0.5,
+    turn: 0.5, steerRate: 4, body: { hw: 1.25, hl: 3.7, half: 3.7, r: 1.2 }, paint: () => false , noNear: true}),
+  tatatruck: veh('tatatruck', 'TATA LPT TRUCK', 'HEAVY TRUCK', { top: 80, tAcc: 30, vAcc: 60, mass: 9500, len: 7.5, grip: 0.7, voice: 0.5,
+    turn: 0.5, steerRate: 4, body: { hw: 1.25, hl: 3.75, half: 3.75, r: 1.2 }, paint: () => false, flip: true, yaw: 180 , noNear: true}),
+  auto: veh('auto', 'BAJAJ RE AUTO RICKSHAW', 'THREE-WHEELER', { top: 60, tAcc: 8, vAcc: 40, mass: 400, len: 2.63, grip: 0.85, voice: 1.7,
+    turn: 1.15, body: { hw: 0.7, hl: 1.32, half: 1.32, r: 0.68 }, paint: () => false, flip: true, yaw: 180 , noNear: true}),
   m3gtr: veh('m3gtr', 'BMW M3 GTR', 'GT RACE CAR', { top: 290, tAcc: 3.6, mass: 1250, len: 4.49, grip: 1.2, paint: () => false }),
   activa: veh('activa', 'HONDA ACTIVA', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 85, tAcc: 8.6, vAcc: 60, mass: 106, len: 1.83, voice: 1.25, yaw: 180 }),
   scooter125: veh('scooter125', '125CC SCOOTER', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 90, tAcc: 7.8, vAcc: 60, mass: 104, len: 1.87, voice: 1.25, yaw: 180 }),
@@ -80,7 +90,7 @@ export const CARS = {
   },
 };
 for (const c of Object.values(CARS)) if (c.auto) {
-  c.stats = { speed: Math.min(1, c.top / 310), accel: Math.max(0.08, Math.min(1, 1.15 - c.tAcc * (c.vAcc === 60 ? 1.6 : 1) / 14)), handling: Math.min(1, c.grip * 0.8) };
+  c.stats = { speed: Math.min(1, c.top / 310), accel: Math.max(0.05, Math.min(1, 1.15 - (c.tAcc * 100) / c.vAcc / 14)), handling: Math.min(1, c.grip * 0.8 * Math.sqrt(c.turn || 1)) };
   c.paint ||= (o) => MAT.paint.test(o.material?.name || '') && !MAT.skip.test(o.material?.name || '');
   c.glass ||= (o) => MAT.glass.test(o.material?.name || '');
   c.brake ||= (o) => MAT.brake.test(o.material?.name || '') && !/rotor|disc|disk|caliper|base/i.test(o.material?.name || ''); // lamps, not brake hardware
@@ -90,7 +100,8 @@ for (const c of Object.values(CARS)) if (c.auto) {
 export let CAR_IDS = [];
 export let POLICE_CAR = 'ferrari';
 export let VEHICLE_CREDITS = {};
-const physOpts = (c) => (c.auto ? { top: c.top, tAcc: c.tAcc, vAcc: c.vAcc, grip: c.grip, bike: c.kind === 'bike', ...(c.kind === 'bike' ? { hw: 0.42, hl: 1.0, half: 1.0, r: 0.42 } : {}) }
+const physOpts = (c) => (c.auto ? { top: c.top, tAcc: c.tAcc, vAcc: c.vAcc, grip: c.grip, bike: c.kind === 'bike', turn: c.turn, steerRate: c.steerRate,
+  ...(c.kind === 'bike' ? { hw: 0.42, hl: 1.0, half: 1.0, r: 0.42 } : {}), ...c.body }
   : { power: c.power, grip: c.grip });
 export const vehicleOpts = (id) => physOpts(CARS[id] || CARS[CAR_IDS[0]]);
 export const vehicleMass = (id) => { const c = CARS[id] || {}; return (c.mass || 1500) + (c.kind === 'bike' ? 75 : 0); };

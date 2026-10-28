@@ -70,15 +70,15 @@ VEHICLES = {
     'ertiga': ('b2d30fc3f98548e5b44fada4029efa86', None, 14000),
     'wagonr': ('6700812ecaa840199bdc31fc3b921385', None, 14000),
     'bolero': ('9f1e594c45e24012b50992bbfeeecda0', None, 14000),
-    'auto': ('5775d012693741008acff9dad410e92d', None, 8000),
+    'auto': ('5775d012693741008acff9dad410e92d', 20000, 8000),
     'olaev': ('54a28e841f494f7496468f06aa36fbcb', None, 6000),
     'deliveryev': ('16a3330edde14cb7b56626ede007067f', None, 4000),
     'viking': ('4daaa992332f43419f85783a120cea44', None, 22000),
     'citybus': ('67b7998f0f3341a8a96655f96adc1a77', None, 22000),
-    'keralabus': ('f2d7bd2c567a4fcdb5064c3f4999ec35', None, 22000),  # Kerala private stage bus
+    'keralabus': ('f2d7bd2c567a4fcdb5064c3f4999ec35', 90000, 22000),  # Kerala private stage bus
     'ksrtc': ('2d4ab65f7a7c470ab14da987a6248b5e', None, 22000),  # KSRTC yellow/red
-    'tatatruck': ('52bb6a5e030c4fde8c3e0ee977447f4f', None, 20000),
-    'tatalorry': ('b86c47f6a28347b3a942e33dae1af6f5', None, 18000),
+    'tatatruck': ('52bb6a5e030c4fde8c3e0ee977447f4f', 60000, 20000),
+    'tatalorry': ('b86c47f6a28347b3a942e33dae1af6f5', 40000, 18000),
 }
 TRANSFORM = ['npx', '--yes', '@gltf-transform/cli@4']
 
