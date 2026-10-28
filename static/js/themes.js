@@ -40,7 +40,9 @@ export const THEMES = {
   bengaluru: {
     ...INDIA_BASE, lang: 'kn', banner: 'TIN FACTORY', nearH: [9, 30], tall: 0.12, tallH: [45, 110],
     overpasses: [[0.3, 0.2, 10.5], [0.55, -0.1, 11], [0.88, 0.15, 12]],
+    // Blue Line (KR Pura-Hebbal, phase 2B): BEML six-car driverless sets, stainless with the line's blue band
     metro: { from: 0.03, to: 0.97, side: -1, color: '#1e63d6', name: 'ನಮ್ಮ ಮೆಟ್ರೋ  NAMMA METRO · BLUE LINE',
+      train: { cars: 6, body: '#cfd4d9', bodyLow: '#b3b9bf', brushed: true, bands: [['#1e63d6', 100, 16], ['#1e63d6', 170, 8]], cab: '#d8dce0', label: 'ನಮ್ಮ ಮೆಟ್ರೋ', dest: 'HEBBALA' },
       stations: [['KR PURA', 0.04], ['KASTURI NAGAR', 0.14], ['HORAMAVU', 0.24], ['HRBR LAYOUT', 0.35], ['KALYAN NAGAR', 0.45], ['HBR LAYOUT', 0.55], ['NAGAWARA', 0.66], ['VEERANNAPALYA', 0.76], ['KEMPAPURA', 0.86], ['HEBBAL', 0.95]] },
     landmarks: [{ type: 'gateway', at: 'start', label: 'TIN FACTORY' }, { type: 'techpark', at: 0.68, side: 1, label: 'MANYATA TECH PARK' },
       { type: 'glassTowers', at: 'end', label: 'BRIGADE SENATE 2' }],
@@ -73,7 +75,9 @@ export const THEMES = {
   kochi: {
     ...INDIA_BASE, lang: 'ml', banner: 'MARINE DRIVE', sky: 'coastal', terrainColors: ['#2a3a20', '#4a3e2c'], trees: 'palm', nearH: [10, 30], tall: 0.1,
     water: { ranges: [[0, 0.12]], dir: 'west', kind: 'backwater', beach: 15 },
+    // Alstom Metropolis three-car sets in turquoise / aqua blue
     metro: { from: 0.12, to: 0.98, side: -1, color: '#00a6a6', name: 'കൊച്ചി മെട്രോ  KOCHI METRO',
+      train: { cars: 3, body: '#37bccb', bodyLow: '#1f8fa3', bands: [['#eaf6f7', 104, 8]], door: '#e3eff1', cab: '#2fb3c3', cabBands: [['#ffffff', 90, 6]], label: 'കൊച്ചി മെട്രോ  KOCHI METRO', dest: 'ALUVA' },
       stations: [["MAHARAJA'S COLLEGE", 0.15], ['MG ROAD', 0.27], ['TOWN HALL', 0.38], ['KALOOR', 0.49], ['JLN STADIUM', 0.6], ['PALARIVATTOM', 0.72], ['CHANGAMPUZHA PARK', 0.84], ['EDAPALLY', 0.95]] },
     busColors: [0xb3121b, 0x1f6fd0, 0xf2a800], autoColors: [[0.08, 0.08, 0.08], [0.95, 0.78, 0.05], [0.95, 0.78, 0.05]],
     landmarks: [{ type: 'gateway', at: 'start', label: 'MARINE DRIVE' }, { type: 'mall', at: 'end', label: 'EDAPPALLY' }],
@@ -87,10 +91,14 @@ export const THEMES = {
   hyderabad: {
     ...INDIA_BASE, lang: 'te', banner: 'CHARMINAR', nearH: [8, 26], tall: 0.06, trees: 'mixed',
     water: { ranges: [[0.8, 1]], dir: 'west', kind: 'lake', beach: 10 },
-    metro: { from: 0.28, to: 0.78, side: -1, color: '#e8452c', name: 'హైదరాబాద్ మెట్రో  HYDERABAD METRO',
+    // MGBS-Chikkadpally is the Green Line (JBS-MGBS); Hyundai Rotem three-car sets, stainless with blue/red/green stripes
+    metro: { from: 0.28, to: 0.78, side: -1, color: '#22a04a', name: 'హైదరాబాద్ మెట్రో  HYDERABAD METRO · GREEN LINE',
+      train: { cars: 3, body: '#d2d6da', bodyLow: '#b5bbc1', brushed: true, bands: [['#1f5fbf', 100, 8], ['#d62828', 110, 6], ['#22a04a', 118, 6]], cab: '#dcdfe2', label: 'HYDERABAD METRO', dest: 'JBS PARADE GROUND' },
       stations: [['MG BUS STATION', 0.3], ['SULTAN BAZAR', 0.45], ['NARAYANGUDA', 0.6], ['CHIKKADPALLY', 0.75]] },
     autoColors: [[0.95, 0.8, 0.05], [0.12, 0.45, 0.2], [0.08, 0.08, 0.08]], busColors: [0x1e8a3a, 0xc82020],
-    landmarks: [{ type: 'charminar', at: 'start' }, { type: 'buddha', at: 0.93, side: 'water' }],
+    landmarks: [{ type: 'charminar', at: 'start' }, { type: 'buddha', at: 0.93, side: 'water' },
+      // Tank Bund along Hussain Sagar: statues of Telugu luminaries and Kakatiya arch replicas
+      { type: 'statueRow', from: 0.82, to: 0.995 }, { type: 'kakatiyaArch', at: 0.825 }, { type: 'kakatiyaArch', at: 0.99 }],
   },
 };
 

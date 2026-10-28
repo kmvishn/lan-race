@@ -77,6 +77,7 @@ VEHICLES = {
     'citybus': ('67b7998f0f3341a8a96655f96adc1a77', None, 22000),
     'keralabus': ('f2d7bd2c567a4fcdb5064c3f4999ec35', 90000, 22000),  # Kerala private stage bus
     'ksrtc': ('2d4ab65f7a7c470ab14da987a6248b5e', None, 22000),  # KSRTC yellow/red
+    'keralabus2': ('ae98e2fb5c9648359e71c1cc23345d6e', None, 22000),  # Kerala private bus, blue "ordinary" colour code
     'tatatruck': ('52bb6a5e030c4fde8c3e0ee977447f4f', 60000, 20000),
     'tatalorry': ('b86c47f6a28347b3a942e33dae1af6f5', 40000, 18000),
 }

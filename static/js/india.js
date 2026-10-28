@@ -4,6 +4,7 @@ import { HW, rng } from './track.js';
 import { quad, geo, rgb, buildShared, buildReflections } from './tokyo.js';
 import { FONTS, BOARDS, inRanges } from './themes.js';
 import { buildLandmarks } from './landmarks.js';
+import { buildTrain } from './metro.js';
 
 const SW = () => HW + 0.5 + 5; // sidewalk outer edge
 const FLEX = ['#d8262c', '#f4c20d', '#1f6fd0', '#1e9b4a', '#ffffff', '#ff7a1a', '#7b2cbf', '#0d0d0d'];
@@ -300,27 +301,21 @@ export function buildIndia(scene, track, world, T, plans) {
       sign.position.set(-side * 7.2, y + 4.4, 0); sign.rotation.y = Math.PI / 2; g.add(sign);
       scene.add(g);
     }
-    // train: 6 coaches ping-ponging along the viaduct
-    const [c, x] = canvas(512, 128);
-    x.fillStyle = '#d9dde2'; x.fillRect(0, 0, 512, 128); x.fillStyle = M.color; x.fillRect(0, 86, 512, 16);
-    for (let i = 0; i < 10; i++) { x.fillStyle = '#fff3cf'; x.fillRect(16 + i * 50, 24, 36, 44); }
-    const coachMat = new THREE.MeshBasicMaterial({ map: tex(c), color: new THREE.Color(1.2, 1.2, 1.2) });
-    const coaches = new THREE.InstancedMesh(new THREE.BoxGeometry(2.9, 3.6, 20), coachMat, 6);
-    coaches.userData.dynamic = true; // moved every frame: keep out of static chunking
-    coaches.frustumCulled = false;
-    scene.add(coaches);
+    // the line's real train shuttling along the viaduct (metro.js), its livery from the theme
+    const tr = buildTrain({ ...M.train, font: FONTS[T.lang] }, M.train.cars);
+    for (const m of tr.meshes) scene.add(m); // userData.dynamic: moved every frame, kept out of static chunking
     const mtx = new THREE.Matrix4(), qq = new THREE.Quaternion(), pv = new THREE.Vector3(), sv = new THREE.Vector3(1, 1, 1), yAxis = new THREE.Vector3(0, 1, 0), tmp = {};
-    const len = d1 - d0 - 140;
+    const cars = M.train.cars, trainLen = cars * tr.carLength, len = d1 - d0 - trainLen - 60;
     train = (t) => {
-      const ph = (t * 16) % (2 * len);
-      const head = d0 + 70 + (ph < len ? ph : 2 * len - ph);
+      const ph = (t * 16) % (2 * len); // ~58 km/h, reversing at the line's ends
       const dir = ph < len ? 1 : -1;
-      for (let i = 0; i < 6; i++) {
-        const s = track.sample(head - dir * i * 20.6, lat, tmp);
-        qq.setFromAxisAngle(yAxis, s.yaw);
-        coaches.setMatrixAt(i, mtx.compose(pv.set(s.x, s.y + y + 2.7, s.z), qq, sv));
+      const head = d0 + 30 + (dir > 0 ? trainLen + ph : 2 * len - ph);
+      for (let i = 0; i < cars; i++) {
+        const s = track.sample(head - dir * (i + 0.5) * tr.carLength, lat, tmp);
+        qq.setFromAxisAngle(yAxis, s.yaw + (dir > 0 ? 0 : Math.PI));
+        tr.place(i, mtx.compose(pv.set(s.x, s.y + y + 0.75, s.z), qq, sv));
       }
-      coaches.instanceMatrix.needsUpdate = true;
+      tr.done();
     };
   }
 

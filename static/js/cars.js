@@ -23,7 +23,6 @@ export const CARS = {
   scorpio: veh('scorpio', 'MAHINDRA SCORPIO', 'SUV', { top: 165, tAcc: 11.5, mass: 1900, len: 4.46, grip: 0.9 }),
   innova: veh('innova', 'TOYOTA INNOVA', 'MPV', { top: 160, tAcc: 15.5, mass: 1700, len: 4.585, grip: 0.9, yaw: 180 }),
   punch: veh('punch', 'TATA PUNCH', 'MICRO SUV', { top: 150, tAcc: 16.5, mass: 1030, len: 3.83, grip: 0.93 }),
-  i20: veh('i20', 'HYUNDAI i20', 'PREMIUM HATCHBACK', { top: 180, tAcc: 10.5, mass: 1080, len: 3.995 }),
   seltos: veh('seltos', 'KIA SELTOS', 'COMPACT SUV', { top: 190, tAcc: 9.7, mass: 1350, len: 4.365, grip: 0.95 }),
   xuv3xo: veh('xuv3xo', 'MAHINDRA XUV 3XO', 'COMPACT SUV', { top: 180, tAcc: 9.5, mass: 1360, len: 3.99, grip: 0.95 }),
   ambassador: veh('ambassador', 'HINDUSTAN AMBASSADOR', 'CLASSIC', { top: 125, tAcc: 22, mass: 1160, len: 4.33, grip: 0.82, voice: 0.85 }),
@@ -67,27 +66,11 @@ export const CARS = {
   scooter125: veh('scooter125', '125CC SCOOTER', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 90, tAcc: 7.8, vAcc: 60, mass: 104, len: 1.87, voice: 1.25, yaw: 180 }),
   pulsar: veh('pulsar', 'BAJAJ PULSAR 150', 'COMMUTER', { kind: 'bike', ride: 'naked', top: 115, tAcc: 4.8, vAcc: 60, mass: 148, len: 2.06, voice: 1.3 }),
   apache: veh('apache', 'TVS APACHE RTR 180', 'STREET', { kind: 'bike', ride: 'naked', top: 124, tAcc: 4.1, vAcc: 60, mass: 139, len: 2.08, voice: 1.35 }),
-  classic350: veh('classic350', 'ROYAL ENFIELD CLASSIC 350', 'CRUISER', { kind: 'bike', ride: 'cruiser', top: 115, tAcc: 5.0, vAcc: 60, mass: 195, len: 2.15, voice: 0.85 }),
   duke390: veh('duke390', 'KTM 390 DUKE', 'NAKED SPORT', { kind: 'bike', ride: 'naked', top: 167, tAcc: 5.5, mass: 168, len: 2.0, grip: 1.08, voice: 1.4 }),
   fz: veh('fz', 'YAMAHA FZ', 'STREET', { kind: 'bike', ride: 'naked', top: 115, tAcc: 4.5, vAcc: 60, mass: 136, len: 1.99, voice: 1.3, yaw: 180 }),
   rx100: veh('rx100', 'YAMAHA RX100', 'CLASSIC 2-STROKE', { kind: 'bike', ride: 'naked', top: 100, tAcc: 7.5, vAcc: 60, mass: 103, len: 1.93, voice: 1.55 }),
-  jupiter: veh('jupiter', 'TVS JUPITER', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 82, tAcc: 9.0, vAcc: 60, mass: 109, len: 1.85, voice: 1.25 }),
   policejeep: veh('policejeep', 'POLICE JEEP', 'POLICE', { top: 140, tAcc: 14, mass: 1700, len: 4.1, hidden: true }),
   ninja: veh('ninja', 'KAWASAKI NINJA 300', 'SPORT', { kind: 'bike', ride: 'sport', top: 180, tAcc: 6.5, mass: 179, len: 2.02, grip: 1.1, voice: 1.5, yaw: 180 }),
-  ferrari: {
-    name: 'FERRARI 458 SPIDER', url: 'models/ferrari.glb', power: 1.0, grip: 1.0, mass: 1500, legacy: true,
-    stats: { speed: 0.78, accel: 0.8, handling: 0.88 },
-    wheels: ['wheel_fl', 'wheel_fr', 'wheel_rl', 'wheel_rr'],
-    paint: (o) => o.name === 'body', glass: (o) => o.name === 'glass',
-    brake: (o) => o.name === 'brakes', head: (o) => o.name === 'lights',
-  },
-  concept: {
-    name: 'CONCEPT HYPERCAR', url: 'models/carconcept.glb', power: 1.12, grip: 0.95, mass: 1450, legacy: true,
-    stats: { speed: 0.9, accel: 0.88, handling: 0.74 },
-    wheels: ['WheelFrontL', 'WheelFrontR', 'WheelRearL', 'WheelRearR'],
-    paint: (o) => /^Paint 1/.test(o.material?.name || ''), glass: (o) => o.material?.name === 'Glass',
-    brake: (o) => o.material?.name === 'Brakelight', head: (o) => o.material?.name === 'Headlight',
-  },
 };
 for (const c of Object.values(CARS)) if (c.auto) {
   c.stats = { speed: Math.min(1, c.top / 310), accel: Math.max(0.05, Math.min(1, 1.15 - (c.tAcc * 100) / c.vAcc / 14)), handling: Math.min(1, c.grip * 0.8 * Math.sqrt(c.turn || 1)) };
@@ -98,7 +81,7 @@ for (const c of Object.values(CARS)) if (c.auto) {
 }
 // Selectable vehicles: the Indian roster once downloaded, otherwise the bundled cars. Filled by loadCarModels.
 export let CAR_IDS = [];
-export let POLICE_CAR = 'ferrari';
+export let POLICE_CAR = '';
 export let VEHICLE_CREDITS = {};
 const physOpts = (c) => (c.auto ? { top: c.top, tAcc: c.tAcc, vAcc: c.vAcc, grip: c.grip, bike: c.kind === 'bike', turn: c.turn, steerRate: c.steerRate,
   ...(c.kind === 'bike' ? { hw: 0.42, hl: 1.0, half: 1.0, r: 0.42 } : {}), ...c.body }
@@ -356,7 +339,6 @@ export async function loadCarModels(onProgress, want = []) {
   VEHICLE_CREDITS = have;
   const indian = Object.keys(CARS).filter((id) => CARS[id].auto && have[id]);
   CAR_IDS = indian.filter((id) => !CARS[id].hidden);
-  if (!CAR_IDS.length) CAR_IDS = Object.keys(CARS).filter((id) => CARS[id].legacy);
   POLICE_CAR = ['policejeep', 'scorpio'].find((id) => indian.includes(id)) || CAR_IDS[0];
   const first = [...new Set([...want.filter((id) => CAR_IDS.includes(id)), CAR_IDS[0], POLICE_CAR])];
   const prog = {};
@@ -635,7 +617,7 @@ export function riderGeometry(d, ride) {
 
 export class CarVisual {
   constructor(carId, color, { police = false, name = null, beam = true } = {}) {
-    const id = protos[carId] ? carId : protos[CAR_IDS[0]] ? CAR_IDS[0] : 'ferrari';
+    const id = protos[carId] ? carId : CAR_IDS[0];
     const cfg = CARS[id], proto = protos[id];
     this.carId = id;
     this.root = new THREE.Group();

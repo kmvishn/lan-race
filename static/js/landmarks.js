@@ -3,8 +3,11 @@ import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { HW } from './track.js';
 import { FONTS, WELCOME, waterSideAt } from './themes.js';
 
-const RESERVE = { palace: 110, gopuram: 45, lighthouse: 25, charminar: 40, buddha: 30, fort: 70, mall: 80, glassTowers: 60, techpark: 90, viewpoint: 20, gateway: 0, bridgeArches: 0 };
+const RESERVE = { palace: 110, gopuram: 45, lighthouse: 25, charminar: 40, buddha: 30, fort: 70, mall: 80, glassTowers: 60, techpark: 90, viewpoint: 20, gateway: 0, bridgeArches: 0, statueRow: 0, kakatiyaArch: 0 };
 const OFFSET = { palace: 150, gopuram: 70, lighthouse: 90, charminar: 55, buddha: 260, fort: 110, mall: 110, glassTowers: 80, techpark: 140, viewpoint: 45 };
+
+// Roadside pieces place themselves along the road (no plan offset, no reserved circle).
+const ROADSIDE = new Set(['gateway', 'bridgeArches', 'statueRow', 'kakatiyaArch']);
 
 // Decide where each landmark of a theme sits; buildings keep clear of the returned circles.
 export function planLandmarks(track, T) {
@@ -23,7 +26,7 @@ export function planLandmarks(track, T) {
       const e = track.sample(track.length);
       const dist = (OFFSET[lm.type] || 80) * 0.7 + 40;
       x = e.x + e.tx * dist; z = e.z + e.tz * dist; yaw = e.yaw + Math.PI;
-    } else if (lm.type !== 'gateway' && lm.type !== 'bridgeArches') {
+    } else if (!ROADSIDE.has(lm.type)) {
       let side = lm.side ?? 1;
       if (side === 'water') side = waterAt(d);
       if (side === 'land') side = -waterAt(d);
@@ -256,18 +259,79 @@ function gateway(track, lm, T) {
   return g;
 }
 
+// Napier Bridge: steel tied arches either side of the deck with vertical hangers, painted as a black-and-white
+// chessboard since 2022 and lit at night.
 function bridgeArches(track, lm) {
   const g = new THREE.Group();
-  const mat = basic(0x39e6ff, 2.4), mat2 = basic(0xff2e88, 2.4);
+  const chess = canvasTex(256, 64, (x, W, H) => { for (let i = 0; i < 8; i++) for (let j = 0; j < 2; j++) { x.fillStyle = (i + j) % 2 ? '#111214' : '#f2f2ee'; x.fillRect(i * 32, j * 32, 32, 32); } });
+  chess.wrapS = chess.wrapT = THREE.RepeatWrapping; chess.repeat.set(10, 1);
+  const steel = new THREE.MeshStandardMaterial({ map: chess, roughness: 0.5, metalness: 0.3, emissive: 0xffffff, emissiveMap: chess, emissiveIntensity: 0.08 });
+  const hangers = [], R = 21, rise = 9;
   for (let k = 0; k < 3; k++) {
-    const p = track.sample(lm.d + k * 42 + 21);
+    const d0 = lm.d + k * 42, p = track.sample(d0 + 21);
     for (const side of [1, -1]) {
-      const a = new THREE.Mesh(new THREE.TorusGeometry(20, 0.35, 6, 40, Math.PI), k % 2 ? mat2 : mat);
+      const a = new THREE.Mesh(new THREE.TorusGeometry(R, 0.55, 6, 40, Math.PI).scale(1, rise / R, 1), steel);
       a.position.set(p.x + p.tz * side * (HW + 1.2), p.y, p.z - p.tx * side * (HW + 1.2));
       a.rotation.y = p.yaw + Math.PI / 2;
       g.add(a);
+      for (let h = -0.8; h <= 0.81; h += 0.2) { // vertical hangers under the arch, in the arch's own frame
+        const hy = rise * Math.sqrt(1 - h * h);
+        hangers.push(new THREE.BoxGeometry(0.12, hy, 0.12).translate(h * R, hy / 2, 0).rotateY(p.yaw + Math.PI / 2).translate(a.position.x, a.position.y, a.position.z));
+      }
     }
   }
+  g.add(new THREE.Mesh(mergeGeometries(hangers), new THREE.MeshStandardMaterial({ color: 0xe8e8e2, roughness: 0.6 })));
+  return g;
+}
+
+// Tank Bund: bronze statues of Telugu luminaries on granite plinths along the lake, ~95 m apart. Instanced.
+function statueRow(track, lm, T, groundY) {
+  const span = track.finishDist - track.startDist, d0 = track.startDist + lm.from * span, d1 = track.startDist + lm.to * span;
+  const n = Math.max(1, Math.floor((d1 - d0) / 95));
+  const figure = mergeGeometries([
+    new THREE.CylinderGeometry(0.34, 0.5, 1.7, 10).translate(0, 0.85, 0), // robe
+    new THREE.CylinderGeometry(0.3, 0.34, 0.55, 10).translate(0, 1.95, 0), // shoulders
+    new THREE.SphereGeometry(0.22, 10, 8).translate(0, 2.42, 0), // head
+    new THREE.CylinderGeometry(0.08, 0.08, 0.75, 6).rotateZ(-0.9).translate(0.45, 1.8, 0.15), // raised arm
+    new THREE.CylinderGeometry(0.08, 0.08, 0.8, 6).rotateZ(0.2).translate(-0.36, 1.45, 0),
+  ]);
+  const plinth = mergeGeometries([new THREE.BoxGeometry(1.6, 2.4, 1.6).translate(0, 1.2, 0), new THREE.BoxGeometry(2.0, 0.3, 2.0).translate(0, 0.15, 0),
+    new THREE.BoxGeometry(1.8, 0.2, 1.8).translate(0, 2.5, 0)]);
+  const fig = new THREE.InstancedMesh(figure, new THREE.MeshStandardMaterial({ color: 0x8c6a3c, metalness: 0.75, roughness: 0.42 }), n);
+  const base = new THREE.InstancedMesh(plinth, new THREE.MeshStandardMaterial({ color: 0x8d8a86, roughness: 0.85 }), n);
+  const m = new THREE.Matrix4(), q = new THREE.Quaternion(), up = new THREE.Vector3(0, 1, 0), one = new THREE.Vector3(1, 1, 1);
+  for (let i = 0; i < n; i++) {
+    const d = d0 + (i + 0.5) * ((d1 - d0) / n), p = track.sample(d);
+    const side = T.water ? waterSideAt(track, d, T.water.dir) : 1;
+    const x = p.x + p.tz * side * (HW + 3.5), z = p.z - p.tx * side * (HW + 3.5), y = groundY(x, z);
+    q.setFromAxisAngle(up, Math.atan2(-p.tz * side, p.tx * side) + Math.PI); // face the road
+    base.setMatrixAt(i, m.compose(new THREE.Vector3(x, y, z), q, one));
+    fig.setMatrixAt(i, m.compose(new THREE.Vector3(x, y + 2.6, z), q, one));
+  }
+  const g = new THREE.Group(); g.add(base, fig);
+  return g;
+}
+
+// Kakatiya Kala Thoranam replica gateway (the Warangal arch) over the lakeside footpath.
+function kakatiyaArch(track, lm, T, groundY) {
+  const span = track.finishDist - track.startDist, d = track.startDist + lm.at * span, p = track.sample(d);
+  const side = T.water ? waterSideAt(track, d, T.water.dir) : 1;
+  const x = p.x + p.tz * side * (HW + 4), z = p.z - p.tx * side * (HW + 4);
+  const stone = new THREE.MeshStandardMaterial({ color: 0xb7a58a, roughness: 0.9 });
+  const parts = [];
+  for (const s of [-1, 1]) {
+    parts.push(new THREE.BoxGeometry(1.1, 9, 1.1).translate(s * 3.6, 4.5, 0), new THREE.BoxGeometry(1.5, 0.6, 1.5).translate(s * 3.6, 0.3, 0),
+      new THREE.BoxGeometry(1.4, 0.5, 1.4).translate(s * 3.6, 9.2, 0));
+    for (let k = 1; k < 6; k++) parts.push(new THREE.BoxGeometry(1.25, 0.12, 1.25).translate(s * 3.6, k * 1.5, 0)); // carved bands
+    parts.push(new THREE.ConeGeometry(0.45, 1.6, 6).translate(s * 4.4, 11.3, 0)); // hamsa finials
+  }
+  parts.push(new THREE.BoxGeometry(9.6, 1.0, 1.0).translate(0, 9.9, 0), new THREE.BoxGeometry(8.4, 0.5, 0.8).translate(0, 10.65, 0),
+    new THREE.BoxGeometry(5.2, 0.9, 0.7).translate(0, 11.35, 0));
+  const g = new THREE.Group();
+  const arch = new THREE.Mesh(mergeGeometries(parts.map((q) => q.toNonIndexed())), stone);
+  g.add(arch, bulbOutline([[0, 10.4, 0, 9.8, 2.2, 1.2]], 0.9, 0xffd27a));
+  g.position.set(x, groundY(x, z), z);
+  g.rotation.y = p.yaw;
   return g;
 }
 
@@ -277,6 +341,8 @@ export function buildLandmarks(scene, track, T, plans, groundY = () => 0) {
     let obj;
     if (lm.type === 'gateway') obj = gateway(track, lm, T);
     else if (lm.type === 'bridgeArches') obj = bridgeArches(track, lm);
+    else if (lm.type === 'statueRow') obj = statueRow(track, lm, T, groundY);
+    else if (lm.type === 'kakatiyaArch') obj = kakatiyaArch(track, lm, T, groundY);
     else if (BUILD[lm.type]) {
       obj = BUILD[lm.type](T, lm);
       obj.position.set(lm.x, groundY(lm.x, lm.z), lm.z);

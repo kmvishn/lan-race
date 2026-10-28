@@ -4,6 +4,7 @@ import { rng, HW } from './track.js';
 import { gltfLoader, normalizeVehicle, autoWheels, riderGeometry, riderParts, loadRider, recolorMaterials, sanitizeMaterials, MAT } from './cars.js';
 import { collide } from './physics.js';
 import { FONTS } from './themes.js';
+import { cityBus } from './citybus.js';
 
 const KENNEY_SCALE = 1.8; // kit is toy-scale (~2.5m sedans)
 const KENNEY = ['sedan', 'taxi', 'suv', 'suv-luxury', 'van', 'truck', 'delivery', 'garbage-truck', 'ambulance', 'sedan-sports', 'hatchback-sports', 'firetruck'];
@@ -59,16 +60,26 @@ const KIND_MODELS = { sedan: ['sedan'], suv: ['suv', 'suv-luxury'], hatch: ['hat
 
 // Bus liveries: operator lettering, colours and real route boards per city.
 const LIVERY = {
-  bmtc: { top: '#a6d36a', bottom: '#1f6e2e', stripe: '#f2c200', name: 'BMTC', local: 'ಬೆಂಗಳೂರು ಮಹಾನಗರ ಸಾರಿಗೆ ಸಂಸ್ಥೆ', lang: 'kn', routes: ['500D HEBBAL', '500DA KR PURAM', '500K KADUGODI', '290E MAJESTIC'] },
-  'bmtc-blue': { top: '#eef3f7', bottom: '#2a6fb5', stripe: '#7fd0e8', name: 'BMTC', local: 'ಬೆಂಗಳೂರು ಮಹಾನಗರ ಸಾರಿಗೆ ಸಂಸ್ಥೆ', lang: 'kn', routes: ['500D HEBBAL', '500DA KR PURAM', '500K KADUGODI', '290E MAJESTIC'] },
-  vajra: { top: '#f4f6f8', bottom: '#1f4fbf', stripe: '#7fb2ff', name: 'VAJRA · BMTC', local: 'ವಜ್ರ', lang: 'kn', routes: ['V-500D HEBBAL', 'V-500CA SILK BOARD', 'KIA-9 AIRPORT'] },
-  'ksrtc-ka': { top: '#e9e9e9', bottom: '#c4161c', stripe: '#f2a800', name: 'KSRTC', local: 'ಕರ್ನಾಟಕ ರಾಜ್ಯ ರಸ್ತೆ ಸಾರಿಗೆ ನಿಗಮ', lang: 'kn', routes: ['201 CHAMUNDI HILLS', '150 CBS', '303 KRS DAM'] },
+  // BMTC: Sarige ordinary in light blue/white (BS-VI) and the older dark blue/white, Vajra AC light blue (Volvo),
+  // electric Astra buses in turquoise (JBM) or violet/white (Switch)
+  bmtc: { top: '#f4f7fa', bottom: '#2f8fdc', stripe: '#1a5aa8', name: 'BMTC', local: 'ಬೆಂಗಳೂರು ಮಹಾನಗರ ಸಾರಿಗೆ ಸಂಸ್ಥೆ', lang: 'kn', routes: ['500D HEBBAL', '500DA KR PURAM', '500K KADUGODI', '290E MAJESTIC'] },
+  'bmtc-blue': { top: '#eef2f6', bottom: '#1d3f9a', stripe: '#7fb6e8', name: 'BMTC', local: 'ಬೆಂಗಳೂರು ಮಹಾನಗರ ಸಾರಿಗೆ ಸಂಸ್ಥೆ', lang: 'kn', routes: ['500D HEBBAL', '500DA KR PURAM', '500K KADUGODI', '290E MAJESTIC'] },
+  vajra: { top: '#5fb4ea', bottom: '#2c86cf', stripe: '#ffffff', name: 'VAJRA', local: 'ವಜ್ರ · BMTC', lang: 'kn', ac: true, routes: ['V-500D HEBBAL', 'V-500CA SILK BOARD', 'KIA-9 AIRPORT'] },
+  'bmtc-ev': { top: '#f2f6f7', bottom: '#16b0a6', stripe: '#0d7f78', name: 'BMTC', local: 'ಎಲೆಕ್ಟ್ರಿಕ್ · ELECTRIC', lang: 'kn', ac: true, routes: ['500D HEBBAL', 'MF-1 METRO FEEDER', '500DA KR PURAM'] },
+  'bmtc-ev2': { top: '#f4f2f8', bottom: '#6f3fa8', stripe: '#b39ad8', name: 'BMTC', local: 'ಎಲೆಕ್ಟ್ರಿಕ್ · ELECTRIC', lang: 'kn', ac: true, routes: ['500D HEBBAL', '290E MAJESTIC'] },
+  // KSRTC Mysuru city: moving to sky blue/white from the older green and light red
+  'ksrtc-ka': { top: '#f4f7fa', bottom: '#3fa4e0', stripe: '#1e6fb0', name: 'KSRTC', local: 'ನಗರ ಸಾರಿಗೆ · MYSURU', lang: 'kn', routes: ['201 CHAMUNDI HILLS', '150 CBS', '303 KRS DAM'] },
+  'ksrtc-ka-old': { top: '#e8f0e4', bottom: '#2f8f3e', stripe: '#e05a5a', name: 'KSRTC', local: 'ನಗರ ಸಾರಿಗೆ · MYSURU', lang: 'kn', routes: ['201 CHAMUNDI HILLS', '150 CBS', '303 KRS DAM'] },
   'ksrtc-kl': { top: '#f2d23a', bottom: '#c41c1c', stripe: '#1a1a1a', name: 'KSRTC', local: 'കെ.എസ്.ആർ.ടി.സി', lang: 'ml', routes: ['FAST KOZHIKODE', 'KALPETTA', 'THALASSERY', 'VYTTILA', 'KOVALAM', 'EAST FORT'] },
   private: { top: '#ffffff', bottom: '#2a7de1', stripe: '#ff3d7f', name: 'SREE KRISHNA', local: 'ശ്രീ കൃഷ്ണ', lang: 'ml', routes: ['KANNUR', 'IRITTY', 'ALUVA', 'FORT KOCHI', 'VIZHINJAM'] },
+  // MTC: ordinary brown and cream, deluxe red
   mtc: { top: '#efe2c0', bottom: '#6e3b1f', stripe: '#f2c200', name: 'MTC', local: 'மாநகர் போக்குவரத்துக் கழகம்', lang: 'ta', routes: ['23C BESANT NAGAR', '12B T.NAGAR', '5B BROADWAY'] },
+  'mtc-deluxe': { top: '#f2ece6', bottom: '#b51f24', stripe: '#3a3a3a', name: 'MTC', local: 'மாநகர் போக்குவரத்துக் கழகம்', lang: 'ta', routes: ['23C BESANT NAGAR', '21G TAMBARAM', 'M70 ADYAR'] },
   tgsrtc: { top: '#f4f6f8', bottom: '#1e8a3a', stripe: '#d62828', name: 'TGSRTC', local: 'తెలంగాణ ఆర్టీసీ', lang: 'te', routes: ['1Z SECUNDERABAD', '8A AFZALGUNJ', '49M KOTI'] },
+  'tgsrtc-ev': { top: '#eef6f0', bottom: '#2a9d5c', stripe: '#1f5fbf', name: 'TGSRTC', local: 'ఈ-మెట్రో · E-METRO', lang: 'te', ac: true, routes: ['1Z SECUNDERABAD', '127K KONDAPUR', '8A AFZALGUNJ'] },
 };
-const CITY_BUSES = { bengaluru: ['bmtc-blue', 'bmtc', 'vajra'], mysuru: ['ksrtc-ka'], chennai: ['mtc'], hyderabad: ['tgsrtc'],
+const CITY_BUSES = { bengaluru: ['bmtc', 'bmtc', 'bmtc-blue', 'vajra', 'bmtc-ev', 'bmtc-ev2'], mysuru: ['ksrtc-ka', 'ksrtc-ka', 'ksrtc-ka-old'], chennai: ['mtc', 'mtc', 'mtc-deluxe'],
+  hyderabad: ['tgsrtc', 'tgsrtc', 'tgsrtc-ev'],
   wayanad: ['ksrtc-kl'], kannur: ['ksrtc-kl', 'private', 'private'], kochi: ['ksrtc-kl', 'private'], trivandrum: ['ksrtc-kl', 'private'] };
 // Destination boards that make sense on each route.
 const CITY_ROUTES = {
@@ -133,36 +144,35 @@ function bake(gltf) {
 const REAL = {
   swift: { len: 3.86, mass: 920 }, dzire: { len: 3.995, mass: 960 }, baleno: { len: 3.99, mass: 935 }, city: { len: 4.58, mass: 1110 },
   creta: { len: 4.33, mass: 1350 }, scorpio: { len: 4.46, mass: 1900 }, innova: { len: 4.585, mass: 1700, yaw: 180 }, wagonr: { len: 3.66, mass: 850, yaw: 180 },
-  bolero: { len: 3.995, mass: 1600 }, ertiga: { len: 4.4, mass: 1150 }, punch: { len: 3.83, mass: 1030 }, i20: { len: 3.995, mass: 1080 },
+  bolero: { len: 3.995, mass: 1600 }, ertiga: { len: 4.4, mass: 1150 }, punch: { len: 3.83, mass: 1030 },
   seltos: { len: 4.365, mass: 1350 }, xuv3xo: { len: 3.99, mass: 1360 }, xuv700: { len: 4.7, mass: 1900 }, ambassador: { len: 4.33, mass: 1160 },
   eeco: { len: 3.68, mass: 940 }, fz: { len: 1.99, mass: 210, ride: 'naked', yaw: 180 }, rx100: { len: 1.93, mass: 180, ride: 'naked' },
-  jupiter: { len: 1.85, mass: 185, ride: 'scooter' }, tataace: { len: 3.8, mass: 1600, vmax: 15 }, tata407: { len: 5.6, mass: 5000 },
+  tataace: { len: 3.8, mass: 1600, vmax: 15 },
   eicher: { len: 7.0, mass: 9000 }, tractor: { len: 3.7, mass: 2500, vmax: 7 },
   activa: { len: 1.83, mass: 180, ride: 'scooter', yaw: 180 }, scooter125: { len: 1.87, mass: 180, ride: 'scooter', yaw: 180 }, olaev: { len: 1.86, mass: 190, ride: 'scooter' },
   deliveryev: { len: 1.8, mass: 200, ride: 'scooter' }, pulsar: { len: 2.06, mass: 220, ride: 'naked' }, apache: { len: 2.08, mass: 215, ride: 'naked' },
-  classic350: { len: 2.15, mass: 270, ride: 'cruiser' },
-  auto: { len: 2.63, mass: 450, yaw: 180 }, viking: { len: 11.0, mass: 12000 }, citybus: { len: 11.0, mass: 12000, yaw: 180 }, keralabus: { len: 9.5, mass: 11000, ownLivery: true, yaw: 180 }, ksrtc: { len: 11.0, mass: 12000, ownLivery: true },
+  auto: { len: 2.63, mass: 450, yaw: 180 }, viking: { len: 11.0, mass: 12000 }, citybus: { len: 11.0, mass: 12000, yaw: 180 }, keralabus: { len: 9.5, mass: 11000, ownLivery: true, yaw: 180 }, keralabus2: { len: 10.5, mass: 11500, ownLivery: true }, ksrtc: { len: 11.0, mass: 12000, ownLivery: true },
   tatatruck: { len: 7.5, mass: 10000, yaw: 180 }, tatalorry: { len: 7.4, mass: 10000 },
   fortuner: { len: 4.795, mass: 2135, recolor: { BrakeRotors1: 0x141414 } }, camry: { len: 4.885, mass: 1665 }, landcruiser: { len: 4.95, mass: 2700 },
   eclass: { len: 4.88, mass: 1800, flip: true }, bmw7: { len: 5.08, mass: 1900 }, x5: { len: 4.85, mass: 2185 }, a6: { len: 4.94, mass: 1700 },
 };
 // Shares of new sales (FY25-26, SIAM data) decide which real models appear.
-const CAR_SHARE = { dzire: 4.9, swift: 4.0, wagonr: 3.9, baleno: 3.7, creta: 4.4, scorpio: 3.9, ertiga: 4.3, punch: 4.0, i20: 2.5, seltos: 2.6,
+const CAR_SHARE = { dzire: 4.9, swift: 4.0, wagonr: 3.9, baleno: 3.7, creta: 4.4, scorpio: 3.9, ertiga: 4.3, punch: 4.0, seltos: 2.6,
   xuv3xo: 2.0, xuv700: 2.0, city: 1.6, bolero: 2.5, eeco: 2.2, ambassador: 0.3,
   innova: 1.5, fortuner: 1.1, camry: 0.3, landcruiser: 0.15, eclass: 0.35, bmw7: 0.12, x5: 0.2, a6: 0.25 }; // luxury: well under 2% of sales
-const TW_SHARE = { activa: 26, jupiter: 11, scooter125: 8, pulsar: 18, apache: 8, fz: 6, rx100: 1, olaev: 6, deliveryev: 6 };
+const TW_SHARE = { activa: 26, scooter125: 8, pulsar: 18, apache: 8, fz: 6, rx100: 1, olaev: 6, deliveryev: 6 };
 // Goods vehicles: mini trucks dominate city deliveries, heavy lorries the highways (and the ghat after 8 pm).
-const TRUCK_SHARE = { tataace: 5, tata407: 2, eicher: 2, tatatruck: 2, tatalorry: 2, tractor: 1 };
+const TRUCK_SHARE = { tataace: 5, eicher: 2, tatatruck: 2, tatalorry: 2, tractor: 1 };
 // Local flavour per route, multiplied onto the shares above.
 const LOCAL = {
   bengaluru: { olaev: 2, deliveryev: 2, seltos: 1.5, xuv700: 1.5, ambassador: 0, tractor: 0, eclass: 1.8, bmw7: 1.8, x5: 1.8, a6: 1.8 },
-  chennai: { tractor: 0, i20: 1.5, ambassador: 0.5 },
+  chennai: { tractor: 0, ambassador: 0.5 },
   mysuru: { tractor: 1, tataace: 1.5, bolero: 1.5, olaev: 0.6, deliveryev: 0.4 },
   wayanad: { bolero: 4, scorpio: 2, xuv700: 2, fortuner: 2, eeco: 1.5, tatatruck: 3, tatalorry: 3, eicher: 2, tataace: 1, deliveryev: 0, olaev: 0.3, ambassador: 1.5 },
   kannur: { tractor: 0, ambassador: 4, ertiga: 1.5, tatatruck: 1.5, tatalorry: 1.5, innova: 2.5, fortuner: 2 }, // Gulf money: Innovas and Fortuners everywhere
   kochi: { tractor: 0, ambassador: 3, ertiga: 1.5, olaev: 1.3, innova: 2.5, fortuner: 2, landcruiser: 2.5, eclass: 1.5, bmw7: 1.5 },
   trivandrum: { tractor: 0, ambassador: 4, ertiga: 1.5, innova: 2.5, fortuner: 2 },
-  hyderabad: { tractor: 0, ambassador: 0, i20: 1.3, fortuner: 1.5, landcruiser: 1.5 },
+  hyderabad: { tractor: 0, ambassador: 0, fortuner: 1.5, landcruiser: 1.5 },
 };
 // Indian car colour popularity: white dominates, then silver/grey.
 const CAR_COLOURS = [[0xf2f2f0, 40], [0xb9bcc2, 18], [0x5d6168, 10], [0x9a1b1b, 8], [0x1d3a6e, 8], [0x16171a, 8], [0x6b4a32, 4], [0xd8c9a8, 4]];
@@ -217,7 +227,6 @@ function markShared(m) {
 export function loadNearModel(id) {
   return (nearCache[id] ||= loadRider().then(() => gltfLoader().loadAsync(`models/vehicles/${id}.glb`)).then((g) => markShared(bakeReal(g, REAL[id]))).catch(() => null));
 }
-export const realIds = () => Object.keys(REAL);
 
 export async function loadTrafficModels(onProgress) {
   const loader = gltfLoader();
@@ -235,52 +244,6 @@ export async function loadTrafficModels(onProgress) {
     }),
   ]);
   return out;
-}
-
-function busAtlas(L) {
-  const S = 1024;
-  const [c, x] = canvas(S, S), [e, y] = canvas(S, S);
-  y.fillStyle = '#000'; y.fillRect(0, 0, S, S);
-  // side (0..320 px tall): windows band, livery, lettering
-  const side = (oy) => {
-    x.fillStyle = L.top; x.fillRect(0, oy, S, 320);
-    x.fillStyle = L.bottom; x.fillRect(0, oy + 190, S, 130);
-    x.fillStyle = L.stripe; x.fillRect(0, oy + 178, S, 14);
-    x.fillStyle = '#1b2026'; x.fillRect(40, oy + 40, S - 80, 110);
-    for (let i = 0; i < 9; i++) {
-      const wx = 60 + i * 102;
-      x.fillStyle = '#2c3640'; x.fillRect(wx, oy + 48, 92, 94);
-      y.fillStyle = Math.random() < 0.8 ? '#ffe6b0' : '#cfe6ff'; y.fillRect(wx + 4, oy + 52, 84, 86);
-      y.fillStyle = 'rgba(40,30,20,0.6)'; for (let p = 0; p < 2; p++) y.fillRect(wx + 12 + p * 38, oy + 92, 22, 46); // passengers
-    }
-    x.fillStyle = '#101418'; x.fillRect(S - 150, oy + 40, 70, 260); // door
-    x.textBaseline = 'middle';
-    x.fillStyle = '#ffffff'; x.font = '900 70px "Arial Black", Impact, sans-serif'; x.textAlign = 'left';
-    x.fillText(L.name, 50, oy + 255);
-    x.font = `700 34px ${FONTS[L.lang]}, Arial`; x.textAlign = 'right';
-    x.fillStyle = L.stripe === '#1a1a1a' ? '#f2d23a' : '#ffffff';
-    x.fillText(L.local, S - 170, oy + 255);
-  };
-  side(0);
-  // front (0..320 x, 320..640 y) and back (320..640 x)
-  for (const [ox, front] of [[0, true], [320, false]]) {
-    x.fillStyle = L.bottom; x.fillRect(ox, 320, 320, 320);
-    x.fillStyle = L.top; x.fillRect(ox, 320, 320, 140);
-    x.fillStyle = '#11161c'; x.fillRect(ox + 20, front ? 380 : 400, 280, front ? 150 : 90);
-    x.fillStyle = '#000'; x.fillRect(ox + 30, 330, 260, 40);
-    const route = L.routes[Math.floor(Math.random() * L.routes.length)];
-    y.fillStyle = '#ff9a1a'; y.font = '900 30px "Arial Black", Impact, sans-serif'; y.textAlign = 'center'; y.textBaseline = 'middle';
-    const tw = y.measureText(route).width; y.save(); y.translate(ox + 160, 351); y.scale(Math.min(1, 240 / tw), 1); y.fillText(route, 0, 0); y.restore();
-    if (front) { y.fillStyle = 'rgba(160,190,220,0.25)'; y.fillRect(ox + 20, 380, 280, 150); }
-    x.fillStyle = '#ffffff'; x.font = '900 34px "Arial Black", Impact, sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
-    x.fillText(L.name.split(' ')[0], ox + 160, 600);
-  }
-  x.fillStyle = '#8c9096'; x.fillRect(640, 320, 384, 320); // roof
-  x.fillStyle = '#0d0d0d'; x.fillRect(0, 640, 64, 64);
-  const ct = tex(c), et = tex(e);
-  const R = { side: [0, 1 - 320 / S, 1, 1], front: [0, 1 - 640 / S, 320 / S, 1 - 320 / S], back: [320 / S, 1 - 640 / S, 640 / S, 1 - 320 / S],
-    roof: [640 / S, 1 - 640 / S, 1, 1 - 320 / S], dark: [0, 1 - 704 / S, 64 / S, 1 - 640 / S] };
-  return { map: ct, emissive: et, R };
 }
 
 function lorryAtlas() {
@@ -334,18 +297,10 @@ function indianModels(T, mapId) {
   M.bike = twoWheeler(false);
   // City bus with operator livery atlas; several liveries become separate types (bus, bus2, ...).
   const liveries = CITY_BUSES[mapId] || ['bmtc'];
-  [...new Set(liveries)].forEach((id, k) => {
-    const A = busAtlas({ ...LIVERY[id], routes: CITY_ROUTES[mapId]?.[id] || LIVERY[id].routes });
-    const mat = new THREE.MeshStandardMaterial({ map: A.map, emissiveMap: A.emissive, emissive: 0xffffff, emissiveIntensity: 1.3, roughness: 0.45, metalness: 0.2 });
-    const R = A.R;
-    M[k ? 'bus' + k : 'bus'] = {
-      geo: mergeGeometries([atlasBox(2.55, 2.9, 11.5, 0, 1.85, 0, [R.side, R.side, R.roof, R.dark, R.front, R.back])]),
-      extra: mergeGeometries([wheel(0.5, 0.3, 1.1, 0.5, 3.8), wheel(0.5, 0.3, -1.1, 0.5, 3.8), wheel(0.5, 0.3, 1.1, 0.5, -3.6), wheel(0.5, 0.3, -1.1, 0.5, -3.6),
-        box(2.6, 0.3, 0.3, 0, 0.5, 5.75, [0.08, 0.08, 0.08]), box(2.6, 0.3, 0.3, 0, 0.5, -5.75, [0.08, 0.08, 0.08])]),
-      head: mergeGeometries([box(0.35, 0.15, 0.05, 0.9, 0.95, 5.77, HEAD), box(0.35, 0.15, 0.05, -0.9, 0.95, 5.77, HEAD)]),
-      tail: mergeGeometries([box(0.3, 0.2, 0.05, 1.0, 1.0, -5.77, TAIL), box(0.3, 0.2, 0.05, -1.0, 1.0, -5.77, TAIL)]),
-      dims: { w: 2.55, l: 11.5 }, mat, tint: null, liveryOf: id, massKey: 'bus',
-    };
+  // repeated ids weight the mix (e.g. most BMTC buses are Sarige ordinary)
+  liveries.forEach((id, k) => {
+    M[k ? 'bus' + k : 'bus'] = { ...cityBus({ ...LIVERY[id], routes: CITY_ROUTES[mapId]?.[id] || LIVERY[id].routes }, HEAD, TAIL),
+      tint: null, liveryOf: id, massKey: 'bus' };
   });
   // Painted goods lorry
   const LA = lorryAtlas();
@@ -412,8 +367,8 @@ export class Traffic {
         .filter(([id, w]) => w > 0 && all['real:' + id]).map(([id, w]) => ['real:' + id, w]));
       const realCars = realOf(CAR_SHARE), realTw = realOf(TW_SHARE), realTrucks = realOf(TRUCK_SHARE);
       // Malabar (Kannur, Wayanad) runs mostly private stage buses; elsewhere state transport (KSRTC/BMTC/MTC/TGSRTC).
-      const busPool = { kannur: ['keralabus', 'keralabus', 'keralabus', 'ksrtc'], wayanad: ['keralabus', 'keralabus', 'ksrtc'] }[mapId]
-        || (T.lang === 'ml' ? ['ksrtc', 'ksrtc', 'ksrtc', 'keralabus'] : ['viking', 'citybus']);
+      const busPool = { kannur: ['keralabus', 'keralabus', 'keralabus2', 'keralabus2', 'ksrtc'], wayanad: ['keralabus', 'keralabus2', 'ksrtc'] }[mapId]
+        || (T.lang === 'ml' ? ['ksrtc', 'ksrtc', 'ksrtc', 'keralabus', 'keralabus2'] : ['viking', 'citybus']);
       const realBus = busPool.filter((id) => all['real:' + id]).map((id) => 'real:' + id);
       const has = (o) => Object.keys(o).length > 0;
       for (const dir of [1, -1]) {
@@ -424,7 +379,9 @@ export class Traffic {
           let type, lane;
           if (cls === 'tw') { type = has(realTw) ? pickW(realTw) : r() < 0.55 ? 'bike' : 'scooter'; const q = r(); lane = q < 0.6 || !four ? 'tw' : q < 0.85 ? 'between' : 'fast'; }
           else if (cls === 'auto') { type = all['real:auto'] ? 'real:auto' : 'auto'; lane = 'slow'; }
-          else if (cls === 'bus') { type = realBus.length ? realBus[Math.floor(r() * realBus.length)] : busTypes[Math.floor(r() * busTypes.length)]; lane = 'slow'; }
+          else if (cls === 'bus') { // the city's own liveried fleet, with older generic buses as a minority (Kerala: real models)
+            const own = busTypes.length && (!realBus.length || (T.lang !== 'ml' && r() < (mapId === 'bengaluru' ? 0.9 : 0.75)));
+            type = own ? busTypes[Math.floor(r() * busTypes.length)] : realBus[Math.floor(r() * realBus.length)]; lane = 'slow'; }
           else if (cls === 'truck') { type = has(realTrucks) ? pickW(realTrucks) : r() < 0.75 ? 'lorry' : 'truck'; lane = 'slow'; }
           else if (has(realCars)) { type = pickW(realCars); lane = r() < 0.65 ? 'fast' : 'slow'; }
           else { const k = pickW(carKinds); const opts = KIND_MODELS[k]; type = opts[Math.floor(r() * opts.length)]; lane = r() < 0.65 ? 'fast' : 'slow'; }

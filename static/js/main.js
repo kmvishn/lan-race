@@ -136,7 +136,7 @@ const G = {
 let me = new CarPhysics(track);
 let myVis = null;
 const remotes = new Map(); // id -> {vis, color, name, cops:[]}
-let name = '', color = PAINTS[0], car = 'ferrari';
+let name = '', color = PAINTS[0], car = '';
 try { name = localStorage.getItem('nh.name') || ''; color = localStorage.getItem('nh.color') || color; car = localStorage.getItem('nh.car') || car; } catch { /* storage unavailable */ }
 if (!name) name = 'Racer' + Math.floor(Math.random() * 900 + 100);
 
