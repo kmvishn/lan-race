@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { Track, buildWorld, gridSlot, setRoadWidth, circuitOutline } from './track.js';
 import { CarPhysics, collide, clamp, wrapAngle } from './physics.js';
-import { initTextureDecoder, loadCarModels, ensureCar, carLoaded, CarVisual, CARS, CAR_IDS, POLICE_CAR, VEHICLE_CREDITS, vehicleOpts, vehicleMass } from './cars.js';
+import { initTextureDecoder, loadCarModels, ensureCar, carLoaded, CarVisual, CARS, CAR_IDS, POLICE_CAR, VEHICLE_CREDITS, RIDER_CREDITS, vehicleOpts, vehicleMass } from './cars.js';
 import { Traffic, loadTrafficModels, loadNearModel } from './traffic.js';
 import { Particles, Skidmarks, Rain } from './fx.js';
 import { buildTokyo } from './tokyo.js';
@@ -1073,8 +1073,8 @@ const tipTimer = setInterval(showTip, 3500);
     trafficModels = tm;
     // CC-BY attribution for downloaded vehicle models
     const tc = await fetch('models/traffic/credits.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
-    const vc = { ...tc, ...VEHICLE_CREDITS };
-    if (Object.keys(vc).length) document.querySelector('.credits').append(' · Vehicles (Sketchfab, CC): ' + Object.values(vc).map((c) => `${c.title} by ${c.author}`).join(', '));
+    const vc = { ...tc, ...VEHICLE_CREDITS, ...RIDER_CREDITS };
+    if (Object.keys(vc).length) document.querySelector('.credits').append(' · Vehicles and rider (Sketchfab, CC): ' + Object.values(vc).map((c) => `${c.title} by ${c.author}`).join(', '));
     mapIndex = [...idx, TOKYO_INFO];
     rain.visible = true;
     // settle the preset first: light counts are part of every shader, so changing it later recompiles everything

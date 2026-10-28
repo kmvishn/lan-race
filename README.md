@@ -30,7 +30,7 @@ Bengaluru (Tin Factory → Brigade Senate 2) · Chennai · Mysuru · Wayanad gha
 
 Players pick from Indian cars and two-wheelers, budget to luxury: Maruti Swift / Dzire / Baleno, Tata Punch, Honda City, Hyundai Creta, Kia Seltos, Mahindra XUV 3XO / Thar / Scorpio, Hindustan Ambassador, BMW 3 Series, Audi A4 / Q7, Mercedes C-Class, Honda Activa, a 125cc scooter, Bajaj Pulsar 150, TVS Apache RTR 180, Yamaha FZ, Yamaha RX100, KTM Duke and Kawasaki Ninja. Each uses its real top speed and acceleration (reached in 80% of the real time). Bikes lean into corners and have a rider. Police drive an Indian police jeep. Traffic uses real models too, weighted by Indian sales figures and by location: autos, KSRTC and Malabar private buses, Ashok Leyland and city buses, Tata Ace / Eicher / Tata lorries, tractors around Mysuru, jeeps and lorries on the Wayanad ghat, Ambassadors in Kerala, Ola EV and delivery scooters in Bengaluru.
 
-The models are CC-BY licensed from Sketchfab and are downloaded with `SKETCHFAB_TOKEN=<your API token> python3 scripts/fetch-vehicles.py` (needs Node for gltf-transform; with KTX-Software's `toktx` on PATH, player vehicles get GPU-compressed KTX2 textures — only needed when preparing models, never by players). Their authors are listed in `static/models/*/credits.json` and in the game menu. Until they are downloaded the game falls back to the bundled cars.
+The models are CC-BY licensed from Sketchfab and are downloaded with `SKETCHFAB_TOKEN=<your API token> python3 scripts/fetch-vehicles.py` (needs Node for gltf-transform; with KTX-Software's `toktx` on PATH, player vehicles get GPU-compressed KTX2 textures — only needed when preparing models, never by players). Their authors are listed in `static/models/*/credits.json` and in the game menu. Riders are one rigged human model (`static/models/rider/`) posed onto every bike with inverse kinematics when the game loads and baked into a static mesh, so they cost nothing extra per frame. Until they are downloaded the game falls back to the bundled cars.
 
 `scripts/make-maps.py` regenerates the map files (`--pois` refreshes only landmarks/photos), `scripts/make-font.sh` the sign fonts, `scripts/fetch-vendor.sh` the third-party assets.
 
@@ -43,6 +43,7 @@ W/↑ throttle · S/↓ brake · A D/← → steer · Space handbrake · Shift/N
 - Road geometry © OpenStreetMap contributors (ODbL), routed with OSRM
 - Elevation: SRTM (NASA/USGS, public domain) via OpenTopoData
 - Landmark data: Wikidata (CC0); landmark photos from Wikimedia Commons under CC/PD licences, listed with authors in PHOTO_CREDITS.md
+- Motorcycle rider: "80's mystery biker" by thomasdonovan26 — CC-BY 4.0 (Sketchfab). Modified: posed onto each bike in game, a band patch on the jacket removed, helmet shell lightened so it takes the player's colour
 - Ferrari 458 Italia model by vicent091036 — CC-BY 4.0 (via three.js examples)
 - Concept car by Eric Chadwick / Darmstadt Graphics Group — CC-BY 4.0 (Khronos glTF Sample Assets)
 - Traffic vehicles: Kenney Car Kit — CC0
