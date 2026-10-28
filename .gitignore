@@ -2,3 +2,5 @@ lan-racer
 __pycache__/
 lan-racer.log
 .lan-racer.pid
+scripts/node_modules/
+scripts/package-lock.json

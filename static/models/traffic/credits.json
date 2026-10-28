@@ -6,10 +6,10 @@
   "source": "https://sketchfab.com/3d-models/07cf082bab4d430a8a764a23590e35fa"
  },
  "dzire": {
-  "title": "Maruti Suzuki Dzire",
-  "author": "rmihir560",
+  "title": "Suzuki Swift Dzire",
+  "author": "r34maxpro",
   "license": "by",
-  "source": "https://sketchfab.com/3d-models/a96e3b803a144b44ab4b08d484ad844d"
+  "source": "https://sketchfab.com/3d-models/885c8f08674f48d7a54706fee791402f"
  },
  "baleno": {
   "title": "Baleno 2019",
@@ -60,10 +60,10 @@
   "source": "https://sketchfab.com/3d-models/916198718ea84dd5932b324a1dc5fb61"
  },
  "wagonr": {
-  "title": "2013 Suzuki WagonR",
-  "author": "BHP3D",
+  "title": "Wagon R",
+  "author": "tkanimationsd742",
   "license": "by",
-  "source": "https://sketchfab.com/3d-models/71112627f42342099ff95b59e7532663"
+  "source": "https://sketchfab.com/3d-models/6700812ecaa840199bdc31fc3b921385"
  },
  "bolero": {
   "title": "Bolero",
@@ -138,10 +138,10 @@
   "source": "https://sketchfab.com/3d-models/1a85da7678ba4f708cfbee0d9303c5d7"
  },
  "seltos": {
-  "title": "NEW KIA SELTOS 2026",
-  "author": "rmihir560",
+  "title": "2022 Kia Seltos EX",
+  "author": "mvntyyy",
   "license": "by",
-  "source": "https://sketchfab.com/3d-models/9b883d7199f64214999e82146ae28dd4"
+  "source": "https://sketchfab.com/3d-models/f1d5c26452cf43acb9f154fc076097e5"
  },
  "xuv3xo": {
   "title": "XUV 3XO",
@@ -196,5 +196,53 @@
   "author": "sarthakvermamainyt",
   "license": "by",
   "source": "https://sketchfab.com/3d-models/68fffe30eea4457eae371462c93990f9"
+ },
+ "innova": {
+  "title": "2013 - 2015 Toyota Kijang Innova 2.5 V [KUN40R]",
+  "author": "boiledfish.vvti",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/43a8142b29d542de817e9f64f5ec1846"
+ },
+ "fortuner": {
+  "title": "Toyota SW4 Fortuner",
+  "author": "Nieve5677",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/379e4180f137480b9a8578e7da9184e2"
+ },
+ "camry": {
+  "title": "Toyota Camry 2020",
+  "author": "ItsDiyor",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/236a5a6e2fa6420fbdf641f4800cd544"
+ },
+ "landcruiser": {
+  "title": "Toyota Land Cruiser J200 2017",
+  "author": "David_Holiday",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/374e85a6e18743429f6d9c0e7bbffb3c"
+ },
+ "eclass": {
+  "title": "Mercedes E Class W212",
+  "author": "Peter_D",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/119c5e10733142b197aa53b86f6aeb04"
+ },
+ "bmw7": {
+  "title": "BMW 7-series (F01)",
+  "author": "Black Snow",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/0806c39847ae42e5996917f50527dda0"
+ },
+ "x5": {
+  "title": "2009 BMW X5 XDrive 4.8i",
+  "author": "tonielpro520",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/08b867223842444baaf88bd442991c5f"
+ },
+ "a6": {
+  "title": "2021 Audi A6 40 TFSI Quattro (C8)",
+  "author": "DisneyCars",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/43c266f6ea494ec59a1306084c30226c"
  }
 }

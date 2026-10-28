@@ -8,7 +8,7 @@ export function wrapAngle(a) {
 }
 
 const GEARS = [0, 17, 30, 44, 58, 73, 115];
-const GAME = 0.8; // vehicles reach their real 0-100 (or 0-60) in 80% of the real time; top speeds are real
+const GAME = 1; // real 0-100 (or 0-60) times and real top speeds; only nitro goes beyond them
 
 // Tractive model: acc = min(A, P / (v + 9)) - cd*v^2 - rolling. Solves A, P, cd so the vehicle hits its real top speed
 // and accelerates to vAcc (km/h) in tAcc*GAME seconds.

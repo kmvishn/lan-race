@@ -21,7 +21,7 @@ export const CARS = {
   creta: veh('creta', 'HYUNDAI CRETA', 'COMPACT SUV', { top: 190, tAcc: 8.9, mass: 1350, len: 4.33, grip: 0.95 }),
   thar: veh('thar', 'MAHINDRA THAR', 'OFF-ROADER', { top: 155, tAcc: 10.5, mass: 1750, len: 3.98, grip: 0.88 }),
   scorpio: veh('scorpio', 'MAHINDRA SCORPIO', 'SUV', { top: 165, tAcc: 11.5, mass: 1900, len: 4.46, grip: 0.9 }),
-  innova: veh('innova', 'TOYOTA INNOVA CRYSTA', 'MPV', { top: 175, tAcc: 11.5, mass: 1750, len: 4.75, grip: 0.92 }),
+  innova: veh('innova', 'TOYOTA INNOVA', 'MPV', { top: 160, tAcc: 15.5, mass: 1700, len: 4.585, grip: 0.9, yaw: 180 }),
   punch: veh('punch', 'TATA PUNCH', 'MICRO SUV', { top: 150, tAcc: 16.5, mass: 1030, len: 3.83, grip: 0.93 }),
   i20: veh('i20', 'HYUNDAI i20', 'PREMIUM HATCHBACK', { top: 180, tAcc: 10.5, mass: 1080, len: 3.995 }),
   seltos: veh('seltos', 'KIA SELTOS', 'COMPACT SUV', { top: 190, tAcc: 9.7, mass: 1350, len: 4.365, grip: 0.95 }),
@@ -31,6 +31,28 @@ export const CARS = {
   a4: veh('a4', 'AUDI A4', 'LUXURY SEDAN', { top: 241, tAcc: 7.1, mass: 1580, len: 4.76, grip: 1.05 }),
   cclass: veh('cclass', 'MERCEDES-BENZ C-CLASS', 'LUXURY SEDAN', { top: 246, tAcc: 7.3, mass: 1650, len: 4.79, grip: 1.05 }),
   q7: veh('q7', 'AUDI Q7', 'LUXURY SUV', { top: 250, tAcc: 5.9, mass: 2150, len: 5.06, grip: 0.98, yaw: 180 }),
+  // what fills Kochi's MG Road and Bengaluru's UB City: Indian-market variants, real top speed / 0-100 / kerb mass
+  swiftsport: veh('swiftsport', 'SUZUKI SWIFT SPORT', 'HOT HATCH', { top: 210, tAcc: 8.1, mass: 970, len: 3.89, grip: 1.05, paint: (o) => /^(New_Material|Bodyrefunblend21_diff)$/.test(o.material?.name || '') }),
+  fortuner: veh('fortuner', 'TOYOTA FORTUNER', 'FULL-SIZE SUV', { top: 180, tAcc: 10.2, mass: 2135, len: 4.795, grip: 0.9, paint: (o) => /Pearl_White/.test(o.material?.name || ''), recolor: { BrakeRotors1: 0x141414 } }),
+  camry: veh('camry', 'TOYOTA CAMRY HYBRID', 'EXECUTIVE SEDAN', { top: 180, tAcc: 8.3, mass: 1665, len: 4.885 }),
+  landcruiser: veh('landcruiser', 'TOYOTA LAND CRUISER 200', 'LUXURY SUV', { top: 210, tAcc: 8.6, mass: 2700, len: 4.95, grip: 0.9 }),
+  lexuslx: veh('lexuslx', 'LEXUS LX 570', 'LUXURY SUV', { top: 220, tAcc: 7.7, mass: 2700, len: 5.065, grip: 0.9 }),
+  eclass: veh('eclass', 'MERCEDES-BENZ E-CLASS', 'EXECUTIVE SEDAN', { top: 250, tAcc: 6.6, mass: 1800, len: 4.88, grip: 1.05, flip: true }),
+  sclass: veh('sclass', 'MERCEDES-AMG S 65', 'FLAGSHIP SEDAN', { top: 250, tAcc: 4.3, mass: 2250, len: 5.29, grip: 1.05 }),
+  maybach: veh('maybach', 'MERCEDES-MAYBACH GLS 600', 'ULTRA-LUXURY SUV', { top: 250, tAcc: 4.9, mass: 2785, len: 5.205, grip: 0.97 }),
+  gclass: veh('gclass', 'MERCEDES-AMG G 63', 'LUXURY OFF-ROADER', { top: 220, tAcc: 4.5, mass: 2560, len: 4.87, grip: 0.92 }),
+  bmw7: veh('bmw7', 'BMW 7 SERIES', 'FLAGSHIP SEDAN', { top: 250, tAcc: 6.2, mass: 1900, len: 5.08, grip: 1.05 }),
+  x5: veh('x5', 'BMW X5', 'LUXURY SUV', { top: 240, tAcc: 6.5, mass: 2185, len: 4.85, grip: 0.98 }),
+  a6: veh('a6', 'AUDI A6', 'EXECUTIVE SEDAN', { top: 250, tAcc: 6.8, mass: 1700, len: 4.94, grip: 1.05 }),
+  q5: veh('q5', 'AUDI Q5 SPORTBACK', 'LUXURY SUV', { top: 237, tAcc: 6.3, mass: 1880, len: 4.69, grip: 1.0 }),
+  rangerover: veh('rangerover', 'RANGE ROVER SUPERCHARGED', 'LUXURY SUV', { top: 225, tAcc: 5.9, mass: 2600, len: 4.97, grip: 0.92, paint: (o) => o.material?.name === 'Merged_materials', opaque: true }),
+  rrsport: veh('rrsport', 'RANGE ROVER SPORT', 'LUXURY SUV', { top: 242, tAcc: 5.9, mass: 2300, len: 4.946, grip: 0.97 }),
+  defender: veh('defender', 'LAND ROVER DEFENDER 90', 'OFF-ROADER', { top: 145, tAcc: 15.3, mass: 1800, len: 3.88, grip: 0.86 }),
+  p911: veh('p911', 'PORSCHE 911 CARRERA S', 'SPORTS CAR', { top: 302, tAcc: 4.1, mass: 1425, len: 4.49, grip: 1.15 }),
+  // the real 2001 BMW Motorsport E46 M3 GTR (the car Need for Speed: Most Wanted made famous), in its own livery
+  // street-tuned Maruti 800: widebody, wing, mild turbo build (stock: 37 hp, ~140 km/h, 0-100 in ~17 s)
+  m800: veh('m800', 'MARUTI 800 CUSTOM', 'TUNED CLASSIC', { top: 155, tAcc: 10.5, mass: 680, len: 3.4, grip: 1.08, voice: 1.2, noWheels: true }), // tyres merged per axle
+  m3gtr: veh('m3gtr', 'BMW M3 GTR', 'GT RACE CAR', { top: 290, tAcc: 3.6, mass: 1250, len: 4.49, grip: 1.2, paint: () => false }),
   activa: veh('activa', 'HONDA ACTIVA', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 85, tAcc: 8.6, vAcc: 60, mass: 106, len: 1.83, voice: 1.25, yaw: 180 }),
   scooter125: veh('scooter125', '125CC SCOOTER', 'SCOOTER', { kind: 'bike', ride: 'scooter', top: 90, tAcc: 7.8, vAcc: 60, mass: 104, len: 1.87, voice: 1.25, yaw: 180 }),
   pulsar: veh('pulsar', 'BAJAJ PULSAR 150', 'COMMUTER', { kind: 'bike', ride: 'naked', top: 115, tAcc: 4.8, vAcc: 60, mass: 148, len: 2.06, voice: 1.3 }),
@@ -58,10 +80,10 @@ export const CARS = {
   },
 };
 for (const c of Object.values(CARS)) if (c.auto) {
-  c.stats = { speed: Math.min(1, c.top / 260), accel: Math.max(0.08, Math.min(1, 1.15 - c.tAcc * (c.vAcc === 60 ? 1.6 : 1) / 14)), handling: Math.min(1, c.grip * 0.8) };
+  c.stats = { speed: Math.min(1, c.top / 310), accel: Math.max(0.08, Math.min(1, 1.15 - c.tAcc * (c.vAcc === 60 ? 1.6 : 1) / 14)), handling: Math.min(1, c.grip * 0.8) };
   c.paint ||= (o) => MAT.paint.test(o.material?.name || '') && !MAT.skip.test(o.material?.name || '');
   c.glass ||= (o) => MAT.glass.test(o.material?.name || '');
-  c.brake ||= (o) => MAT.brake.test(o.material?.name || '');
+  c.brake ||= (o) => MAT.brake.test(o.material?.name || '') && !/rotor|disc|disk|caliper|base/i.test(o.material?.name || ''); // lamps, not brake hardware
   c.head ||= (o) => !MAT.brake.test(o.material?.name || '') && MAT.head.test(o.material?.name || '');
 }
 // Selectable vehicles: the Indian roster once downloaded, otherwise the bundled cars. Filled by loadCarModels.
@@ -108,13 +130,17 @@ export function normalizeVehicle(scene, wheelNames, scale = 1, targetLen = 0, ya
     for (const o of lines) o.removeFromParent();
     const meshes = [];
     scene.traverse((o) => { if (o.isMesh) meshes.push(o); });
-    const size = meshes.map((o) => new THREE.Box3().setFromObject(o, true).getSize(new THREE.Vector3()));
+    const boxes = meshes.map((o) => new THREE.Box3().setFromObject(o, true)), size = boxes.map((b) => b.getSize(new THREE.Vector3()));
     const hz = size.map((s) => Math.max(s.x, s.z)), med = [...hz].sort((a, b) => a - b)[hz.length >> 1] || 1;
+    const all = new THREE.Box3(); for (const b of boxes) all.union(b);
+    const allSize = all.getSize(new THREE.Vector3());
     meshes.forEach((o, i) => {
       const named = /shadow|ground|floor/i.test(`${o.name} ${o.material?.name || ''}`);
       const big = Math.max(size[i].x, size[i].y, size[i].z), thin = Math.min(size[i].x, size[i].y, size[i].z);
       const box = big > med * 4 && o.geometry.attributes.position.count < 200; // studio cube around the model
-      if (meshes.length > 1 && (named || box || (thin < big * 0.004 && big > med * 3))) o.removeFromParent(); // ground or backdrop
+      // a flat sheet at the very bottom covering most of the footprint: a baked ground / shadow plane
+      const floor = size[i].y < big * 0.004 && boxes[i].min.y - all.min.y < allSize.y * 0.02 && size[i].x * size[i].z > allSize.x * allSize.z * 0.6;
+      if (meshes.length > 1 && (named || box || floor || (thin < big * 0.004 && big > med * 3))) o.removeFromParent(); // ground or backdrop
     });
     norm.updateMatrixWorld(true);
   }
@@ -140,7 +166,7 @@ export function normalizeVehicle(scene, wheelNames, scale = 1, targetLen = 0, ya
     norm.updateMatrixWorld(true);
     wp = hasWheels ? wheels() : wp;
   }
-  const box = new THREE.Box3().setFromObject(scene);
+  const box = new THREE.Box3().setFromObject(scene, true); // exact: rotated parts' loose boxes would lift wheel-less models
   let cx = (box.min.x + box.max.x) / 2, cz = (box.min.z + box.max.z) / 2;
   if (hasWheels) {
     const c = wp.reduce((a, v) => a.add(v), new THREE.Vector3()).multiplyScalar(1 / wp.length);
@@ -157,8 +183,39 @@ export function normalizeVehicle(scene, wheelNames, scale = 1, targetLen = 0, ya
   return { norm, dims: { w: b.max.x - b.min.x, h: b.max.y, minZ: b.min.z, maxZ: b.max.z, l: b.max.z - b.min.z } };
 }
 
+// Downloads ship materials that are expensive or broken in a game: glTF transmission (three.js then re-renders the
+// whole scene every frame for refraction while that car is on screen) becomes plain transparency, and "transparent"
+// materials that are fully opaque (some exporters mark everything BLEND: sorting artefacts, see-through parts, overdraw)
+// become alpha-tested so texture cut-outs still work.
+// opaque: the export's alpha values are garbage (parts at 0% opacity): everything but glass is made solid.
+export function sanitizeMaterials(root, opaque = false) {
+  root.traverse((o) => {
+    for (const m of [].concat(o.material || [])) {
+      if (opaque && !MAT.glass.test(m.name || '')) { m.transparent = false; m.opacity = 1; m.transmission = 0; m.depthWrite = true; continue; }
+      if (m.transmission > 0) { m.transmission = 0; m.transparent = true; m.opacity = Math.min(m.opacity, 0.35); m.depthWrite = false; }
+      else if (m.transparent && m.opacity >= 0.99 && !m.alphaMap) { m.transparent = false; m.depthWrite = true; if (m.map) m.alphaTest = 0.5; }
+    }
+  });
+}
+
+// Fixes materials a download got wrong, by name substring: { BrakeRotors1: 0x141414 } (e.g. tyres named as rotors).
+export function recolorMaterials(root, map) {
+  if (!map) return;
+  const done = {};
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    for (const [k, c] of Object.entries(map)) {
+      if (!(o.material?.name || '').includes(k)) continue;
+      if (!done[k]) { done[k] = o.material.clone(); done[k].color.set(c); done[k].map = null; }
+      o.material = done[k];
+    }
+  });
+}
+
 // Merges a car's meshes by material (body and each wheel separately) to cut draw calls ~3x.
 function bakeCar(norm, cfg) {
+  sanitizeMaterials(norm, cfg.opaque);
+  recolorMaterials(norm, cfg.recolor);
   norm.updateMatrixWorld(true);
   const wheels = cfg.wheelObjs || cfg.wheels.map((n) => norm.getObjectByName(n));
   const groups = new Map();
@@ -168,6 +225,7 @@ function bakeCar(norm, cfg) {
     let container = norm;
     for (let p = o.parent; p; p = p.parent) if (wheels.includes(p)) { container = p; break; }
     const role = cfg.paint(o) ? 'paint' : cfg.glass(o) ? 'glass' : cfg.brake(o) ? 'brake' : cfg.head(o) ? 'head' : 'other';
+    if (role === 'paint' && o.material.side === THREE.DoubleSide) norm.userData.paintDoubleSided = true;
     const g = o.geometry;
     const sig = Object.keys(g.attributes).sort().join() + (g.index ? '|i' : '|n') + (g.morphAttributes && Object.keys(g.morphAttributes).length ? '|m' : '');
     const key = container.uuid + role + o.material.uuid + sig;
@@ -189,6 +247,14 @@ function bakeCar(norm, cfg) {
     mesh.name = role; mesh.userData.role = role;
     container.add(mesh);
   }
+  // Drop the source file's now-empty groups (some exports leave thousands): every car on screen clones the hierarchy
+  // and the scene walks it every frame. Wheel nodes stay, they spin.
+  const keep = new Set(wheels.filter(Boolean));
+  const prune = (o) => {
+    for (const c of [...o.children]) prune(c);
+    if (o !== norm && !o.isMesh && !o.children.length && !keep.has(o)) o.removeFromParent();
+  };
+  prune(norm);
 }
 
 // Finds wheel nodes by name in a downloaded model: 4 for cars (front pair first), 2 for bikes (front first).
@@ -203,8 +269,10 @@ export function autoWheels(scene, cfg) {
   let tops = cands.filter((o) => !cands.some((q) => q !== o && isAnc(q, o)));
   if (tops.length !== want) return null;
   const c = tops.map((o) => new THREE.Box3().setFromObject(o, true).getCenter(new THREE.Vector3()));
-  const box = new THREE.Box3().setFromObject(scene, true);
-  const axis = box.max.x - box.min.x > box.max.z - box.min.z ? 'x' : 'z';
+  // the vehicle's length axis from the wheels themselves (wheelbase > track): the whole scene's box can be skewed by
+  // ground planes or props bundled with a download
+  const spread = (k) => Math.max(...c.map((v) => v[k])) - Math.min(...c.map((v) => v[k]));
+  const axis = spread('x') > spread('z') ? 'x' : 'z';
   const order = tops.map((o, i) => i).sort((a, b) => c[b][axis] - c[a][axis]);
   if (cfg.flip) order.reverse();
   tops = order.map((i) => tops[i]);
@@ -216,6 +284,18 @@ export function autoWheels(scene, cfg) {
 const loading = {};
 let loader = null;
 export const carLoaded = (id) => !!protos[id];
+// Car prototypes are cloned (sharing geometry) for every car on screen and never disposed, so their vertex data only
+// needs to live on the GPU. Bounds are computed first: culling the clones needs them.
+const dropArray = function () { this.array = null; };
+function releaseGeometryWhenUploaded(root) {
+  root.traverse((o) => {
+    const g = o.geometry; if (!g?.attributes?.position) return;
+    if (!g.boundingSphere) g.computeBoundingSphere();
+    if (!g.boundingBox) g.computeBoundingBox();
+    for (const a of [...Object.values(g.attributes), g.index]) if (a && !a.isInterleavedBufferAttribute) a.onUpload(dropArray);
+  });
+}
+
 // Car prototypes live for the whole session, so once every texture of a model is on the GPU their pixel data can leave
 // JS memory. (Textures in one model can share image data, hence waiting for all of them.)
 function releaseTexturesWhenUploaded(root) {
@@ -243,13 +323,17 @@ export function ensureCar(id, onProgress) {
       for (const o of strays) o.removeFromParent();
     }
     if (cfg.auto) {
-      const wheels = autoWheels(gltf.scene, cfg);
+      const wheels = cfg.noWheels ? null : autoWheels(gltf.scene, cfg);
       cfg.wheelObjs = wheels || [];
       cfg.wheels = (wheels || []).map((o) => o.name);
       protos[id] = normalizeVehicle(gltf.scene, cfg.wheelObjs, 1, cfg.len, cfg.yaw || 0);
     } else protos[id] = normalizeVehicle(gltf.scene, cfg.wheels);
     bakeCar(protos[id].norm, cfg);
     releaseTexturesWhenUploaded(protos[id].norm);
+    // wheel sizes are measured once here, so the vertex data can leave JS memory after upload (see CarVisual)
+    protos[id].norm.updateMatrixWorld(true);
+    protos[id].wheelR = cfg.wheels.map((n) => { const b = new THREE.Box3().setFromObject(protos[id].norm.getObjectByName(n), true); return Math.max(0.25, (b.max.y - b.min.y) / 2); });
+    releaseGeometryWhenUploaded(protos[id].norm);
     if (cfg.kind === 'bike') await loadRider();
     return id;
   })());
@@ -554,6 +638,7 @@ export class CarVisual {
     this.bodyMat = new THREE.MeshPhysicalMaterial({
       color: police ? 0x08090c : color, metalness: police ? 0.6 : 1.0, roughness: police ? 0.3 : 0.4,
       clearcoat: 1.0, clearcoatRoughness: 0.03,
+      side: proto.norm.userData.paintDoubleSided ? THREE.DoubleSide : THREE.FrontSide, // panels modelled one-sided
     });
     this.brakeMat = new THREE.MeshStandardMaterial({ color: 0x2a0000, emissive: 0xff1508, emissiveIntensity: 1.5 });
     model.traverse((o) => {
@@ -569,8 +654,7 @@ export class CarVisual {
     this.root.updateMatrixWorld(true);
     this.wheels = cfg.wheels.map((n, i) => {
       const w = model.getObjectByName(n);
-      const box = new THREE.Box3().setFromObject(w, true);
-      const radius = Math.max(0.25, (box.max.y - box.min.y) / 2);
+      const radius = proto.wheelR?.[i] ?? Math.max(0.25, new THREE.Box3().setFromObject(w, true).getSize(_v1).y / 2);
       const axle = _x.clone().applyQuaternion(w.getWorldQuaternion(new THREE.Quaternion()));
       const entry = { obj: w, base: w.quaternion.clone(), sign: Math.sign(axle.x) || 1, radius };
       if (i < (cfg.kind === 'bike' ? 1 : 2)) {

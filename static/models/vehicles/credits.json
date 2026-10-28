@@ -6,10 +6,10 @@
   "source": "https://sketchfab.com/3d-models/07cf082bab4d430a8a764a23590e35fa"
  },
  "dzire": {
-  "title": "Maruti Suzuki Dzire",
-  "author": "rmihir560",
+  "title": "Suzuki Swift Dzire",
+  "author": "r34maxpro",
   "license": "by",
-  "source": "https://sketchfab.com/3d-models/a96e3b803a144b44ab4b08d484ad844d"
+  "source": "https://sketchfab.com/3d-models/885c8f08674f48d7a54706fee791402f"
  },
  "baleno": {
   "title": "Baleno 2019",
@@ -108,10 +108,10 @@
   "source": "https://sketchfab.com/3d-models/1a85da7678ba4f708cfbee0d9303c5d7"
  },
  "seltos": {
-  "title": "NEW KIA SELTOS 2026",
-  "author": "rmihir560",
+  "title": "2022 Kia Seltos EX",
+  "author": "mvntyyy",
   "license": "by",
-  "source": "https://sketchfab.com/3d-models/9b883d7199f64214999e82146ae28dd4"
+  "source": "https://sketchfab.com/3d-models/f1d5c26452cf43acb9f154fc076097e5"
  },
  "xuv3xo": {
   "title": "XUV 3XO",
@@ -142,5 +142,125 @@
   "author": "koltesoham",
   "license": "by",
   "source": "https://sketchfab.com/3d-models/60ece47d1a6b48fab121b26706a9bae2"
+ },
+ "swiftsport": {
+  "title": "2020 Suzuki Swift Sport (ZC33S)",
+  "author": "DisneyCars",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/00a05ca44b4345acbc0540e1e9517db9"
+ },
+ "innova": {
+  "title": "2013 - 2015 Toyota Kijang Innova 2.5 V [KUN40R]",
+  "author": "boiledfish.vvti",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/43a8142b29d542de817e9f64f5ec1846"
+ },
+ "fortuner": {
+  "title": "Toyota SW4 Fortuner",
+  "author": "Nieve5677",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/379e4180f137480b9a8578e7da9184e2"
+ },
+ "camry": {
+  "title": "Toyota Camry 2020",
+  "author": "ItsDiyor",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/236a5a6e2fa6420fbdf641f4800cd544"
+ },
+ "landcruiser": {
+  "title": "Toyota Land Cruiser J200 2017",
+  "author": "David_Holiday",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/374e85a6e18743429f6d9c0e7bbffb3c"
+ },
+ "eclass": {
+  "title": "Mercedes E Class W212",
+  "author": "Peter_D",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/119c5e10733142b197aa53b86f6aeb04"
+ },
+ "sclass": {
+  "title": "Mersedes-Benz s65 w222",
+  "author": "Black Snow",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/f42d9d13b0404b5b9a2302a4c590a94d"
+ },
+ "maybach": {
+  "title": "Mersedes- Benz Maybach GLS 600",
+  "author": "Black Snow",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/34c4687ba8204efaa7551afea9f5689f"
+ },
+ "gclass": {
+  "title": "Mercedes Benz G-class W263",
+  "author": "Lexyc16",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/1a2a52b16cad4e618af347461817895c"
+ },
+ "bmw7": {
+  "title": "BMW 7-series (F01)",
+  "author": "Black Snow",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/0806c39847ae42e5996917f50527dda0"
+ },
+ "x5": {
+  "title": "2009 BMW X5 XDrive 4.8i",
+  "author": "tonielpro520",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/08b867223842444baaf88bd442991c5f"
+ },
+ "a6": {
+  "title": "2021 Audi A6 40 TFSI Quattro (C8)",
+  "author": "DisneyCars",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/43c266f6ea494ec59a1306084c30226c"
+ },
+ "q5": {
+  "title": "2022 Audi Q5 Sportback",
+  "author": "tonielpro520",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/9cf08cf1dac24654a34dbdad76cce52c"
+ },
+ "rangerover": {
+  "title": "2010 Land Rover Range Rover Supercharged",
+  "author": "Randomness",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/dd8455bdfa3247feb906145fa2abca03"
+ },
+ "rrsport": {
+  "title": "2023 Land Rover Range Rover Sport",
+  "author": "Silyboy",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/c1105996547b4c4c8a4cfc3523a4c726"
+ },
+ "defender": {
+  "title": "Land Rover Defender 90 Lowpoly",
+  "author": "kekomag",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/88e5f30687ec4d508cebafa876e014d6"
+ },
+ "p911": {
+  "title": "2015 - Porsche 911 Carrera S | Mid-Poly",
+  "author": "chiwei",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/4cef7c1e22ab40fd937507eae9a62cd8"
+ },
+ "lexuslx": {
+  "title": "Lexus LX 570",
+  "author": "VladGolik",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/605997db34c445898e4e92c8f4524378"
+ },
+ "m3gtr": {
+  "title": "2001 BMW M3 GTR",
+  "author": "Dave Love SketchFab",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/6bb4d180cd0d454ba62fbfae24fc5155"
+ },
+ "m800": {
+  "title": "Maruti suzuki 800 custom Edition",
+  "author": "Pro_modeler",
+  "license": "by",
+  "source": "https://sketchfab.com/3d-models/b7a9057643da422c972dfa5971d51c39"
  }
 }
