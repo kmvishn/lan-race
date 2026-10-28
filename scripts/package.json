@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "description": "Dev-only tools for preparing game assets (scripts/fetch-vehicles.py); players never need these.",
+  "type": "module",
+  "dependencies": {
+    "@gltf-transform/core": "^4.5.0",
+    "@gltf-transform/extensions": "^4.5.0",
+    "@gltf-transform/functions": "^4.5.0",
+    "meshoptimizer": "^1.0.0"
+  }
+}

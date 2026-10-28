@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rng, HW } from './track.js';
-import { gltfLoader, normalizeVehicle, autoWheels, riderGeometry, riderParts, loadRider, MAT } from './cars.js';
+import { gltfLoader, normalizeVehicle, autoWheels, riderGeometry, riderParts, loadRider, recolorMaterials, sanitizeMaterials, MAT } from './cars.js';
 import { collide } from './physics.js';
 import { FONTS } from './themes.js';
 
@@ -132,7 +132,7 @@ function bake(gltf) {
 // Real Indian traffic (Sketchfab CC models, scripts/fetch-vehicles.py): length (m) to scale to, mass (kg), rider pose.
 const REAL = {
   swift: { len: 3.86, mass: 920 }, dzire: { len: 3.995, mass: 960 }, baleno: { len: 3.99, mass: 935 }, city: { len: 4.58, mass: 1110 },
-  creta: { len: 4.33, mass: 1350 }, scorpio: { len: 4.46, mass: 1900 }, innova: { len: 4.75, mass: 1750 }, wagonr: { len: 3.66, mass: 850, yaw: 180 },
+  creta: { len: 4.33, mass: 1350 }, scorpio: { len: 4.46, mass: 1900 }, innova: { len: 4.585, mass: 1700, yaw: 180 }, wagonr: { len: 3.66, mass: 850, yaw: 180 },
   bolero: { len: 3.995, mass: 1600 }, ertiga: { len: 4.4, mass: 1150 }, punch: { len: 3.83, mass: 1030 }, i20: { len: 3.995, mass: 1080 },
   seltos: { len: 4.365, mass: 1350 }, xuv3xo: { len: 3.99, mass: 1360 }, xuv700: { len: 4.7, mass: 1900 }, ambassador: { len: 4.33, mass: 1160 },
   eeco: { len: 3.68, mass: 940 }, fz: { len: 1.99, mass: 210, ride: 'naked', yaw: 180 }, rx100: { len: 1.93, mass: 180, ride: 'naked' },
@@ -143,31 +143,36 @@ const REAL = {
   classic350: { len: 2.15, mass: 270, ride: 'cruiser' },
   auto: { len: 2.63, mass: 450, yaw: 180 }, viking: { len: 11.0, mass: 12000 }, citybus: { len: 11.0, mass: 12000, yaw: 180 }, keralabus: { len: 9.5, mass: 11000, ownLivery: true, yaw: 180 }, ksrtc: { len: 11.0, mass: 12000, ownLivery: true },
   tatatruck: { len: 7.5, mass: 10000, yaw: 180 }, tatalorry: { len: 7.4, mass: 10000 },
+  fortuner: { len: 4.795, mass: 2135, recolor: { BrakeRotors1: 0x141414 } }, camry: { len: 4.885, mass: 1665 }, landcruiser: { len: 4.95, mass: 2700 },
+  eclass: { len: 4.88, mass: 1800, flip: true }, bmw7: { len: 5.08, mass: 1900 }, x5: { len: 4.85, mass: 2185 }, a6: { len: 4.94, mass: 1700 },
 };
 // Shares of new sales (FY25-26, SIAM data) decide which real models appear.
 const CAR_SHARE = { dzire: 4.9, swift: 4.0, wagonr: 3.9, baleno: 3.7, creta: 4.4, scorpio: 3.9, ertiga: 4.3, punch: 4.0, i20: 2.5, seltos: 2.6,
-  xuv3xo: 2.0, xuv700: 2.0, city: 1.6, bolero: 2.5, eeco: 2.2, ambassador: 0.3 };
+  xuv3xo: 2.0, xuv700: 2.0, city: 1.6, bolero: 2.5, eeco: 2.2, ambassador: 0.3,
+  innova: 1.5, fortuner: 1.1, camry: 0.3, landcruiser: 0.15, eclass: 0.35, bmw7: 0.12, x5: 0.2, a6: 0.25 }; // luxury: well under 2% of sales
 const TW_SHARE = { activa: 26, jupiter: 11, scooter125: 8, pulsar: 18, apache: 8, fz: 6, rx100: 1, olaev: 6, deliveryev: 6 };
 // Goods vehicles: mini trucks dominate city deliveries, heavy lorries the highways (and the ghat after 8 pm).
 const TRUCK_SHARE = { tataace: 5, tata407: 2, eicher: 2, tatatruck: 2, tatalorry: 2, tractor: 1 };
 // Local flavour per route, multiplied onto the shares above.
 const LOCAL = {
-  bengaluru: { olaev: 2, deliveryev: 2, seltos: 1.5, xuv700: 1.5, ambassador: 0, tractor: 0 },
+  bengaluru: { olaev: 2, deliveryev: 2, seltos: 1.5, xuv700: 1.5, ambassador: 0, tractor: 0, eclass: 1.8, bmw7: 1.8, x5: 1.8, a6: 1.8 },
   chennai: { tractor: 0, i20: 1.5, ambassador: 0.5 },
   mysuru: { tractor: 1, tataace: 1.5, bolero: 1.5, olaev: 0.6, deliveryev: 0.4 },
-  wayanad: { bolero: 4, scorpio: 2, xuv700: 2, eeco: 1.5, tatatruck: 3, tatalorry: 3, eicher: 2, tataace: 1, deliveryev: 0, olaev: 0.3, ambassador: 1.5 },
-  kannur: { tractor: 0, ambassador: 4, ertiga: 1.5, tatatruck: 1.5, tatalorry: 1.5 },
-  kochi: { tractor: 0, ambassador: 3, ertiga: 1.5, olaev: 1.3 },
-  trivandrum: { tractor: 0, ambassador: 4, ertiga: 1.5 },
-  hyderabad: { tractor: 0, ambassador: 0, i20: 1.3 },
+  wayanad: { bolero: 4, scorpio: 2, xuv700: 2, fortuner: 2, eeco: 1.5, tatatruck: 3, tatalorry: 3, eicher: 2, tataace: 1, deliveryev: 0, olaev: 0.3, ambassador: 1.5 },
+  kannur: { tractor: 0, ambassador: 4, ertiga: 1.5, tatatruck: 1.5, tatalorry: 1.5, innova: 2.5, fortuner: 2 }, // Gulf money: Innovas and Fortuners everywhere
+  kochi: { tractor: 0, ambassador: 3, ertiga: 1.5, olaev: 1.3, innova: 2.5, fortuner: 2, landcruiser: 2.5, eclass: 1.5, bmw7: 1.5 },
+  trivandrum: { tractor: 0, ambassador: 4, ertiga: 1.5, innova: 2.5, fortuner: 2 },
+  hyderabad: { tractor: 0, ambassador: 0, i20: 1.3, fortuner: 1.5, landcruiser: 1.5 },
 };
 // Indian car colour popularity: white dominates, then silver/grey.
 const CAR_COLOURS = [[0xf2f2f0, 40], [0xb9bcc2, 18], [0x5d6168, 10], [0x9a1b1b, 8], [0x1d3a6e, 8], [0x16171a, 8], [0x6b4a32, 4], [0xd8c9a8, 4]];
 const riderMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.6 });
 
 function bakeReal(gltf, cfg) {
-  const wheels = autoWheels(gltf.scene, { kind: cfg.ride ? 'bike' : 'car' });
+  const wheels = autoWheels(gltf.scene, { kind: cfg.ride ? 'bike' : 'car', flip: cfg.flip });
   const { norm, dims } = normalizeVehicle(gltf.scene, wheels || [], 1, cfg.len, cfg.yaw || 0);
+  sanitizeMaterials(norm);
+  recolorMaterials(norm, cfg.recolor);
   norm.updateMatrixWorld(true);
   const groups = new Map();
   norm.traverse((o) => {

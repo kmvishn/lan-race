@@ -89,15 +89,18 @@ function applyQuality(name) {
 }
 // AUTO: in the lobby and during the start countdown, try HIGH then step down until the scene holds ~55 fps, so the
 // preset is settled before the green light. Mid-race, a sustained drop under ~45 fps still steps down.
-const bench = { t: 0, n: 0, done: false, slowT: 0 };
+// Judged on the median frame, not the average: one load hitch would otherwise read as a slow machine and trigger a
+// downgrade, and changing the preset recompiles every shader (a much bigger hitch).
+const bench = { t: 0, f: [], done: false, slowT: 0, skip: 2 };
 function autoBench(dt) {
   const settling = G.phase === 'menu' || (G.phase === 'race' && net.now() < G.startAt);
   if (gfxSetting !== 'auto' || bench.done || !settling || document.hidden) return;
-  bench.t += dt; bench.n++;
+  if (bench.skip > 0) { bench.skip -= dt; return; } // let the lobby settle first
+  bench.t += dt; bench.f.push(dt);
   if (bench.t < 1.5) return;
-  const avg = bench.t / bench.n;
-  bench.t = 0; bench.n = 0;
-  if (avg > 1 / 55 && qName !== 'low') applyQuality(qName === 'high' ? 'medium' : 'low');
+  const med = bench.f.sort((a, b) => a - b)[bench.f.length >> 1];
+  bench.t = 0; bench.f = [];
+  if (med > 1 / 55 && qName !== 'low') applyQuality(qName === 'high' ? 'medium' : 'low');
   else bench.done = true;
 }
 function trackPerf(dt) {
@@ -169,7 +172,7 @@ function setCar(id) {
 let swapTok = 0;
 async function swapCar() {
   const tok = ++swapTok, vis = new CarVisual(car, color, { name });
-  await compileAsync(vis.root, scene);
+  await Promise.all([compileAsync(vis.root, scene), uploadTexturesSliced(vis.root)]);
   if (tok !== swapTok || !myVis) { vis.dispose(); return; }
   scene.add(vis.root);
   uploadNow(vis.root);
@@ -400,7 +403,7 @@ function syncRemoteVisuals() {
       // compile its shaders off the main thread first, so a player joining (or their car arriving) doesn't hitch
       const vis = r.vis;
       vis.root.visible = false;
-      compileAsync(vis.root, scene).then(() => { if (!vis.root.parent) return; vis.root.visible = true; uploadNow(vis.root); });
+      Promise.all([compileAsync(vis.root, scene), uploadTexturesSliced(vis.root)]).then(() => { if (!vis.root.parent) return; vis.root.visible = true; uploadNow(vis.root); });
     }
   }
 }
@@ -505,6 +508,17 @@ function compileAsync(obj, target = null) {
 // Uploads objects' geometry and textures (hidden parts too) by rendering only them, plus the scene's lights so the
 // shaders match, into the tiny offscreen target: camera layer 31 holds just those.
 const warmCam = new THREE.PerspectiveCamera();
+// A newly seen vehicle's textures go to the GPU a few at a time across frames (models can carry dozens), so the final
+// upload render below has only geometry left to do.
+async function uploadTexturesSliced(root) {
+  const ts = new Set();
+  root.traverse((o) => { for (const m of [].concat(o.material || [])) for (const k in m) if (m[k]?.isTexture) ts.add(m[k]); });
+  let t0 = performance.now();
+  for (const t of ts) {
+    renderer.initTexture(t);
+    if (performance.now() - t0 > 6) { await nextPaint(); t0 = performance.now(); }
+  }
+}
 function uploadNow(...roots) {
   scene.traverse((o) => { if (o.isLight) o.layers.enable(31); });
   const culled = [], hidden = [];
@@ -546,13 +560,19 @@ async function loadNearTraffic(tr) {
   const ids = tr.types.map((ty) => ty.type.startsWith('real:') && ty.type.slice(5)).filter((id) => id && VEHICLE_CREDITS[id]);
   const models = await Promise.all(ids.map((id) => loadNearModel(id)));
   if (traffic !== tr) return; // map changed meanwhile
-  const meshes = ids.flatMap((id, i) => (models[i] ? tr.attachNear('real:' + id, models[i]) : []));
-  if (!meshes.length) return;
-  for (const im of meshes) releaseOnUpload(im);
-  await Promise.all(meshes.map((im) => compileAsync(im, scene)));
-  if (traffic !== tr) return;
-  uploadNow(...meshes); // just these meshes, not the whole scene
-  releaseImages(city, renderer);
+  // one vehicle type per frame (compile, textures in slices, then geometry), so the extra detail never hitches
+  for (let i = 0; i < ids.length; i++) {
+    if (!models[i] || traffic !== tr) continue;
+    const meshes = tr.attachNear('real:' + ids[i], models[i]);
+    if (!meshes.length) continue;
+    for (const im of meshes) releaseOnUpload(im);
+    await Promise.all(meshes.map((im) => compileAsync(im, scene)));
+    for (const im of meshes) await uploadTexturesSliced(im);
+    if (traffic !== tr) return;
+    uploadNow(...meshes); // just these meshes, not the whole scene
+    await nextPaint();
+  }
+  if (traffic === tr) releaseImages(city, renderer);
 }
 
 // ---------- flow ----------
