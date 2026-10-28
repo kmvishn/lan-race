@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { rng, HW } from './track.js';
-import { gltfLoader, normalizeVehicle, autoWheels, riderGeometry, MAT } from './cars.js';
+import { gltfLoader, normalizeVehicle, autoWheels, riderGeometry, riderParts, loadRider, MAT } from './cars.js';
 import { collide } from './physics.js';
 import { FONTS } from './themes.js';
 
@@ -186,7 +186,11 @@ function bakeReal(gltf, cfg) {
     groups.get(m.uuid).geos.push(g);
   });
   const parts = [...groups.values()].map(({ mat, geos }) => ({ geo: mergeGeometries(geos), mat, paint: MAT.paint.test(mat.name || '') && !MAT.skip.test(mat.name || '') }));
-  if (cfg.ride) parts.push({ geo: riderGeometry(dims, cfg.ride), mat: riderMat, paint: true });
+  if (cfg.ride) { // the real rider (helmet takes the instance colour), or the low-poly one without the model
+    const rp = riderParts(dims, cfg.ride);
+    if (rp) for (const p of rp) parts.push({ geo: p.geo, mat: p.mat, paint: p.helmet });
+    else parts.push({ geo: riderGeometry(dims, cfg.ride), mat: riderMat, paint: true });
+  }
   const l = lightsGeo(dims);
   return { parts, dims, head: l.head, tail: l.tail, real: true, mass: cfg.mass };
 }
@@ -206,7 +210,7 @@ function markShared(m) {
 }
 
 export function loadNearModel(id) {
-  return (nearCache[id] ||= gltfLoader().loadAsync(`models/vehicles/${id}.glb`).then((g) => markShared(bakeReal(g, REAL[id]))).catch(() => null));
+  return (nearCache[id] ||= loadRider().then(() => gltfLoader().loadAsync(`models/vehicles/${id}.glb`)).then((g) => markShared(bakeReal(g, REAL[id]))).catch(() => null));
 }
 export const realIds = () => Object.keys(REAL);
 
@@ -214,6 +218,7 @@ export async function loadTrafficModels(onProgress) {
   const loader = gltfLoader();
   const out = {};
   const have = await fetch('models/traffic/credits.json').then((r) => (r.ok ? r.json() : {})).catch(() => ({}));
+  await loadRider();
   const real = Object.keys(REAL).filter((id) => have[id]);
   let done = 0;
   const tick = () => onProgress?.(++done / (KENNEY.length + real.length));

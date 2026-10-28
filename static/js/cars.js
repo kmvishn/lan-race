@@ -250,6 +250,7 @@ export function ensureCar(id, onProgress) {
     } else protos[id] = normalizeVehicle(gltf.scene, cfg.wheels);
     bakeCar(protos[id].norm, cfg);
     releaseTexturesWhenUploaded(protos[id].norm);
+    if (cfg.kind === 'bike') await loadRider();
     return id;
   })());
 }
@@ -303,12 +304,149 @@ const riderMats = {
   boot: new THREE.MeshStandardMaterial({ color: 0x0b0b0c, roughness: 0.55, metalness: 0.1 }),
 };
 const POSE = { // torso forward lean (rad), seat height, seat z, bar height, bar z, foot z (fractions of length / metres)
-  sport: { lean: 0.95, seatY: 0.8, seatZ: -0.14, barY: 0.86, barZ: 0.26, footY: 0.36, footZ: -0.12, knee: 0.3 },
+  sport: { lean: 1.25, seatY: 0.8, seatZ: -0.14, barY: 0.86, barZ: 0.26, footY: 0.36, footZ: -0.12, knee: 0.3 },
   naked: { lean: 0.42, seatY: 0.8, seatZ: -0.12, barY: 1.0, barZ: 0.24, footY: 0.32, footZ: -0.05, knee: 0.28 },
   scooter: { lean: 0.12, seatY: 0.76, seatZ: -0.1, barY: 1.02, barZ: 0.2, footY: 0.3, footZ: 0.12, knee: 0.34 },
   cruiser: { lean: 0.05, seatY: 0.74, seatZ: -0.12, barY: 1.02, barZ: 0.22, footY: 0.34, footZ: 0.18, knee: 0.3 },
 };
+// ---------- real rider ----------
+// A rigged human ("80's mystery biker", CC-BY, see models/rider/credits.json) is posed onto each bike: hips on the
+// seat, spine leaning for the riding style, two-bone IK putting the hands on the grips and the feet on the pegs,
+// fingers curled round the grips. The pose is then baked into static meshes (cached per bike), so a rider costs no
+// skinning at runtime and traffic can instance it. Without the model, the low-poly rider below is used.
+let riderAsset = null;
+export const RIDER_CREDITS = {};
+export function loadRider() {
+  return (loadRider.p ||= (async () => {
+    try {
+      const credits = await fetch('models/rider/credits.json').then((r) => (r.ok ? r.json() : {}));
+      if (!Object.keys(credits).length) return null;
+      riderAsset = await (loader ||= gltfLoader()).loadAsync('models/rider/biker.glb');
+      Object.assign(RIDER_CREDITS, credits);
+      riderAsset.scene.traverse((o) => { if (o.isMesh) o.frustumCulled = false; });
+      return riderAsset;
+    } catch { return null; }
+  })());
+}
+
+const RIDER_HEIGHT = 1.74;
+const _v1 = new THREE.Vector3(), _v2 = new THREE.Vector3(), _v3 = new THREE.Vector3(), _qa = new THREE.Quaternion(), _qb = new THREE.Quaternion();
+const worldPos = (o, v = new THREE.Vector3()) => o.getWorldPosition(v);
+// Rotates a bone by q expressed in world space.
+function rotateWorld(bone, q) {
+  bone.getWorldQuaternion(_qa);
+  _qa.premultiply(q);
+  bone.parent.getWorldQuaternion(_qb).invert();
+  bone.quaternion.copy(_qb.multiply(_qa));
+  bone.updateMatrixWorld(true);
+}
+const aim = (bone, from, to) => rotateWorld(bone, new THREE.Quaternion().setFromUnitVectors(from.clone().normalize(), to.clone().normalize()));
+// Two-bone IK: a (shoulder/hip) -> b (elbow/knee) -> c (wrist/ankle) reaching target, bending towards pole.
+function ik(a, b, c, target, pole) {
+  const pa = worldPos(a), pb = worldPos(b), pc = worldPos(c);
+  const l1 = pa.distanceTo(pb), l2 = pb.distanceTo(pc);
+  const toT = target.clone().sub(pa), d = Math.min(Math.max(toT.length(), Math.abs(l1 - l2) + 1e-3), l1 + l2 - 1e-3);
+  const dir = toT.normalize();
+  const cosA = (l1 * l1 + d * d - l2 * l2) / (2 * l1 * d), sinA = Math.sqrt(Math.max(0, 1 - cosA * cosA));
+  const perp = pole.clone().sub(pa); perp.addScaledVector(dir, -perp.dot(dir)).normalize();
+  const elbow = pa.clone().addScaledVector(dir, l1 * cosA).addScaledVector(perp, l1 * sinA);
+  aim(a, pb.clone().sub(pa), elbow.clone().sub(pa));
+  aim(b, worldPos(c).sub(worldPos(b)), target.clone().sub(worldPos(b)));
+}
+
+const riderCache = new Map();
+// Baked rider meshes for a bike: [{ geo, mat, helmet }] in the bike's normalised space (z forward, y up, metres).
+export function riderParts(d, ride = 'naked') {
+  if (!riderAsset) return null;
+  const key = `${ride}|${d.l.toFixed(3)}|${d.minZ.toFixed(3)}|${d.maxZ.toFixed(3)}|${(d.h || 0).toFixed(3)}`;
+  if (riderCache.has(key)) return riderCache.get(key);
+  const root = riderAsset.scene, P = POSE[ride] || POSE.naked, L = d.l, zc = (d.minZ + d.maxZ) / 2;
+  const bones = [];
+  root.traverse((o) => { if (o.isBone) bones.push(o); });
+  const rest = bones.map((b) => [b, b.position.clone(), b.quaternion.clone()]);
+  const B = (n) => bones.find((b) => new RegExp(`^CC_Base_${n}_\\d+$`).test(b.name));
+  root.position.set(0, 0, 0); root.quaternion.identity(); root.scale.setScalar(1);
+  root.updateMatrixWorld(true);
+  // face +z, stand up, scale to an adult
+  const heel = worldPos(B('L_Foot')), toe = worldPos(B('L_ToeBase'));
+  root.rotation.y = -Math.atan2(toe.x - heel.x, toe.z - heel.z);
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(root, true);
+  root.scale.setScalar(RIDER_HEIGHT / (box.max.y - box.min.y));
+  root.updateMatrixWorld(true);
+  const hip = new THREE.Vector3(0, P.seatY + 0.11, zc + P.seatZ * L);
+  root.position.add(hip.clone().sub(worldPos(B('Pelvis'))));
+  root.updateMatrixWorld(true);
+  const X = new THREE.Vector3(1, 0, 0), rot = (bone, ang) => rotateWorld(bone, new THREE.Quaternion().setFromAxisAngle(X, ang));
+  // spine leans forward for the riding style; the head comes back up to look down the road
+  for (const n of ['Waist', 'Spine01', 'Spine02']) rot(B(n), P.lean / 3);
+  rot(B('NeckTwist01'), -P.lean * 0.35); rot(B('Head'), -P.lean * 0.45);
+  for (const sx of [-1, 1]) {
+    const S = sx < 0 ? 'R' : 'L'; // the model's left is +x once facing +z
+    const grip = new THREE.Vector3(sx * 0.31, P.barY, zc + P.barZ * L);
+    const sh = worldPos(B(`${S}_Upperarm`));
+    ik(B(`${S}_Upperarm`), B(`${S}_Forearm`), B(`${S}_Hand`), grip.clone().add(_v1.set(-sx * 0.02, 0.03, -0.06)), sh.clone().add(_v2.set(sx * 0.45, -0.35, -0.25)));
+    // hand along the forearm, palm down on the grip, fingers wrapped round it
+    const hand = B(`${S}_Hand`), fw = worldPos(hand).sub(worldPos(B(`${S}_Forearm`))).normalize();
+    aim(hand, worldPos(B(`${S}_Mid1`)).sub(worldPos(hand)), fw.clone().add(_v3.set(sx * 0.15, -0.35, 0.2)));
+    const across = worldPos(B(`${S}_Pinky1`)).sub(worldPos(B(`${S}_Index1`))).normalize();
+    for (const f of ['Index', 'Mid', 'Ring', 'Pinky']) for (let k = 1; k <= 3; k++) rotateWorld(B(`${S}_${f}${k}`), new THREE.Quaternion().setFromAxisAngle(across, sx * (k === 1 ? 0.9 : 0.75)));
+    for (let k = 1; k <= 3; k++) rotateWorld(B(`${S}_Thumb${k}`), new THREE.Quaternion().setFromAxisAngle(across, sx * 0.35));
+    // legs: hips stay on the seat, ankles over the pegs, knees forward and slightly out
+    const peg = new THREE.Vector3(sx * (ride === 'scooter' ? 0.17 : 0.21), P.footY + 0.07, zc + P.footZ * L - 0.04);
+    const th = worldPos(B(`${S}_Thigh`));
+    ik(B(`${S}_Thigh`), B(`${S}_Calf`), B(`${S}_Foot`), peg, th.clone().add(_v1.set(sx * 0.25, 0.3, 0.9)));
+    const foot = B(`${S}_Foot`), ft = worldPos(B(`${S}_ToeBase`)).sub(worldPos(foot));
+    aim(foot, ft, _v2.set(sx * 0.1, ride === 'sport' ? -0.25 : -0.12, 1));
+  }
+  root.updateMatrixWorld(true);
+  // bake the pose: skin every vertex on the CPU once
+  const parts = [];
+  root.traverse((m) => {
+    if (!m.isSkinnedMesh) return;
+    m.skeleton.update();
+    const g = m.geometry, pos = g.attributes.position, nrm = g.attributes.normal, si = g.attributes.skinIndex, sw = g.attributes.skinWeight;
+    const n = pos.count, P3 = new Float32Array(n * 3), N3 = new Float32Array(n * 3);
+    const bm = m.skeleton.boneMatrices, M = new THREE.Matrix4(), acc = new THREE.Matrix4(), bone = new THREE.Matrix4(), nm = new THREE.Matrix3();
+    const pre = new THREE.Matrix4().multiplyMatrices(m.matrixWorld, m.bindMatrixInverse), v = new THREE.Vector3(), vn = new THREE.Vector3();
+    for (let i = 0; i < n; i++) {
+      acc.elements.fill(0);
+      for (let k = 0; k < 4; k++) {
+        const w = sw.getComponent(i, k); if (!w) continue;
+        bone.fromArray(bm, si.getComponent(i, k) * 16);
+        for (let e = 0; e < 16; e++) acc.elements[e] += bone.elements[e] * w;
+      }
+      M.multiplyMatrices(pre, acc).multiply(m.bindMatrix);
+      v.fromBufferAttribute(pos, i).applyMatrix4(M); v.toArray(P3, i * 3);
+      vn.fromBufferAttribute(nrm, i).applyMatrix3(nm.getNormalMatrix(M)).normalize(); vn.toArray(N3, i * 3);
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(P3, 3));
+    geo.setAttribute('normal', new THREE.BufferAttribute(N3, 3));
+    if (g.attributes.uv) geo.setAttribute('uv', g.attributes.uv.clone());
+    if (g.index) geo.setIndex(g.index.clone());
+    geo.computeBoundingSphere();
+    const mat = m.material;
+    mat.side = THREE.FrontSide;
+    parts.push({ geo, mat, helmet: /Material_002/.test(mat.name) });
+  });
+  for (const [b, p, q] of rest) { b.position.copy(p); b.quaternion.copy(q); }
+  riderCache.set(key, parts);
+  return parts;
+}
+
 function buildRider(parent, d, ride = 'naked', color = 0xffffff) {
+  const parts = riderParts(d, ride);
+  if (!parts) return buildBlockRider(parent, d, ride, color);
+  const g = new THREE.Group(), helmet = parts.find((p) => p.helmet)?.mat.clone() || new THREE.MeshStandardMaterial();
+  helmet.color.set(color);
+  for (const p of parts) { const m = new THREE.Mesh(p.geo, p.helmet ? helmet : p.mat); m.castShadow = true; g.add(m); }
+  g.userData.helmet = helmet; g.userData.shared = true; // geometry is cached per bike: don't dispose it with the car
+  parent.add(g);
+  return g;
+}
+
+function buildBlockRider(parent, d, ride = 'naked', color = 0xffffff) {
   const P = POSE[ride] || POSE.naked, L = d.l, zc = (d.minZ + d.maxZ) / 2;
   const g = new THREE.Group();
   const V = (x, y, z) => new THREE.Vector3(x, y, z);
@@ -383,7 +521,7 @@ function buildRider(parent, d, ride = 'naked', color = 0xffffff) {
 // One merged, vertex-coloured rider mesh for instanced traffic (white helmet takes the instance colour).
 export function riderGeometry(d, ride) {
   const holder = new THREE.Group();
-  const g = buildRider(holder, d, ride, 0xffffff);
+  const g = buildBlockRider(holder, d, ride, 0xffffff);
   holder.updateMatrixWorld(true);
   const geos = [];
   g.traverse((o) => {
@@ -524,7 +662,7 @@ export class CarVisual {
   dispose() {
     this.root.removeFromParent();
     this.bodyMat.dispose(); this.brakeMat.dispose();
-    if (this.rider) { this.rider.traverse((o) => { o.geometry?.dispose(); }); this.rider.userData.helmet.dispose(); }
+    if (this.rider) { if (!this.rider.userData.shared) this.rider.traverse((o) => { o.geometry?.dispose(); }); this.rider.userData.helmet.dispose(); }
     if (this.tag) { this.tag.material.map.dispose(); this.tag.material.dispose(); }
   }
 }
