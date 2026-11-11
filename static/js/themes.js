@@ -66,6 +66,15 @@ export const THEMES = {
     landmarks: [{ type: 'gateway', at: 'start', label: 'THAMARASSERY GHAT' }, { type: 'viewpoint', at: 'end', label: 'LAKKIDI VIEW POINT' }],
     traffic: { auto: 1, scooter: 2, bus: 3, sedan: 3, suv: 4, hatch: 2, van: 1, truck: 3, delivery: 1 }, hairpins: true,
   },
+  // Terahalli road up the Antara Gange hill above Kolar: dry granite scrub, a few houses at the foot and at Therahalli.
+  // Landmark positions are placeholders until the real gopura and viewpoint spots are known.
+  kolar: {
+    ...INDIA_BASE, lang: 'kn', banner: 'ತೇರಹಳ್ಳಿ  TERAHALLI HILL CLIMB', sky: 'hill', buildRanges: [[0, 0.1], [0.55, 0.63], [0.97, 1]], nearH: [4, 8], tall: 0,
+    trees: 'mixed', treeDensity: 0.8, shoulder: 'earth', terrainColors: ['#4a4a2a', '#6b5238'], kiosks: false, hoardings: false, lampSpacing: 160, reflectors: true,
+    busColors: [0xb3121b, 0xe0e0e0],
+    landmarks: [{ type: 'gateway', at: 'start', label: 'TERAHALLI ROAD' }, { type: 'viewpoint', at: 0.45, label: 'KOLAR VIEW POINT' }, { type: 'gateway', at: 'end', label: 'ADIMA' }],
+    traffic: { auto: 2, scooter: 5, bus: 1, sedan: 2, suv: 2, hatch: 3, van: 1, truck: 1, delivery: 0 }, hairpins: true,
+  },
   kannur: {
     ...INDIA_BASE, lang: 'ml', banner: 'KANNUR', sky: 'coastal', terrainColors: ['#2a3a20', '#4a3e2c'], trees: 'palm', treeDensity: 1.6, nearH: [5, 14], tall: 0, density: 0.7,
     water: { ranges: [[0, 0.07], [0.5, 0.6], [0.92, 1]], dir: 'west', kind: 'sea', beach: 60 },

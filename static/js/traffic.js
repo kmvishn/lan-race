@@ -49,6 +49,7 @@ const MIX = {
   kannur: { tw: 0.55, car: 0.25, auto: 0.08, bus: 0.06, truck: 0.06, density: 10 },
   hyderabad: { tw: 0.57, car: 0.17, auto: 0.17, bus: 0.06, truck: 0.03, density: 13 },
   wayanad: { tw: 0.18, car: 0.42, auto: 0.03, bus: 0.10, truck: 0.27, density: 8 },
+  kolar: { tw: 0.62, car: 0.22, auto: 0.06, bus: 0.03, truck: 0.07, density: 4 }, // quiet village road: no published counts, a guess
 };
 const DT = 0.1, T0 = -12; // fixed sim step; every client replays the same deterministic sim from T0 on the race clock
 function mulberry(seed) {
@@ -78,7 +79,7 @@ const LIVERY = {
   tgsrtc: { top: '#f4f6f8', bottom: '#1e8a3a', stripe: '#d62828', name: 'TGSRTC', local: 'తెలంగాణ ఆర్టీసీ', lang: 'te', routes: ['1Z SECUNDERABAD', '8A AFZALGUNJ', '49M KOTI'] },
   'tgsrtc-ev': { top: '#eef6f0', bottom: '#2a9d5c', stripe: '#1f5fbf', name: 'TGSRTC', local: 'ఈ-మెట్రో · E-METRO', lang: 'te', ac: true, routes: ['1Z SECUNDERABAD', '127K KONDAPUR', '8A AFZALGUNJ'] },
 };
-const CITY_BUSES = { bengaluru: ['bmtc', 'bmtc', 'bmtc-blue', 'vajra', 'bmtc-ev', 'bmtc-ev2'], mysuru: ['ksrtc-ka', 'ksrtc-ka', 'ksrtc-ka-old'], chennai: ['mtc', 'mtc', 'mtc-deluxe'],
+const CITY_BUSES = { bengaluru: ['bmtc', 'bmtc', 'bmtc-blue', 'vajra', 'bmtc-ev', 'bmtc-ev2'], mysuru: ['ksrtc-ka', 'ksrtc-ka', 'ksrtc-ka-old'], kolar: ['ksrtc-ka'], chennai: ['mtc', 'mtc', 'mtc-deluxe'],
   hyderabad: ['tgsrtc', 'tgsrtc', 'tgsrtc-ev'],
   wayanad: ['ksrtc-kl'], kannur: ['ksrtc-kl', 'private', 'private'], kochi: ['ksrtc-kl', 'private'], trivandrum: ['ksrtc-kl', 'private'] };
 // Destination boards that make sense on each route.
@@ -168,6 +169,7 @@ const LOCAL = {
   bengaluru: { olaev: 2, deliveryev: 2, seltos: 1.5, xuv700: 1.5, ambassador: 0, tractor: 0, eclass: 1.8, bmw7: 1.8, x5: 1.8, a6: 1.8 },
   chennai: { tractor: 0, ambassador: 0.5 },
   mysuru: { tractor: 1, tataace: 1.5, bolero: 1.5, olaev: 0.6, deliveryev: 0.4 },
+  kolar: { tractor: 3, tataace: 2, bolero: 2, olaev: 0.3, deliveryev: 0 },
   wayanad: { bolero: 4, scorpio: 2, xuv700: 2, fortuner: 2, eeco: 1.5, tatatruck: 3, tatalorry: 3, eicher: 2, tataace: 1, deliveryev: 0, olaev: 0.3, ambassador: 1.5 },
   kannur: { tractor: 0, ambassador: 4, ertiga: 1.5, tatatruck: 1.5, tatalorry: 1.5, innova: 2.5, fortuner: 2 }, // Gulf money: Innovas and Fortuners everywhere
   kochi: { tractor: 0, ambassador: 3, ertiga: 1.5, olaev: 1.3, innova: 2.5, fortuner: 2, landcruiser: 2.5, eclass: 1.5, bmw7: 1.5 },

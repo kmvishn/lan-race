@@ -18,6 +18,8 @@ MAPS = [
     dict(id='kochi', name='ERNAKULAM', sub='Marine Drive to Edappally', a=(9.97848, 76.27577), b=(10.02610, 76.30800), start='MARINE DRIVE', end='EDAPPALLY'),
     dict(id='trivandrum', name='THIRUVANANTHAPURAM', sub='East Fort to Kovalam', a=(8.48291, 76.94694), b=(8.39510, 76.97299), start='EAST FORT', end='KOVALAM'),
     dict(id='hyderabad', name='HYDERABAD', sub='Charminar to Tank Bund', a=(17.36160, 78.47464), b=(17.42345, 78.48580), start='CHARMINAR', end='TANK BUND'),
+    dict(id='kolar', name='KOLAR', sub='Terahalli Hill Climb to Adima', a=(13.12992, 78.11480), b=(13.13740, 78.09371), start='KOLAR', end='ADIMA',
+         hw=5.5, min_r=8, hairpins=True),  # Terahalli road up the Antara Gange hill; finish position supplied by the map's author
 ]
 OUT = os.path.join(os.path.dirname(__file__), '..', 'static', 'maps')
 PHOTOS = os.path.join(os.path.dirname(__file__), '..', 'static', 'photos')
@@ -228,7 +230,8 @@ def build(m):
     grid = [None] * (nx * nz)
     for (i, j), h in zip(want, gh): grid[j * nx + i] = round((h - base) * m.get('vscale', 1), 1)
 
-    pois = find_pois(m, route, to_ll, lat0, lon0, kx, kz)
+    try: pois = find_pois(m, route, to_ll, lat0, lon0, kx, kz)
+    except Exception as e: print('   landmarks skipped:', e); pois = []
     rise = max(heights) - min(heights)
     print(f"{m['id']:>11}: {route_len / 1000:5.1f} km, min radius {min_radius(r8, 2):.0f} m, climb {rise:.0f} m, "
           f"grid {nx}x{nz} ({len(want)} pts), {len(pois)} landmarks")
